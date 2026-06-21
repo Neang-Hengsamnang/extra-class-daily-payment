@@ -1,6 +1,6 @@
 {
-  "name": "Student Check-In",
-  "short_name": "CheckIn",
+  "name": "Student's Payment Check-In",
+  "short_name": "ស្កេនសិស្សបង់គួរ",
   "start_url": "/auth/login",
   "display": "standalone",
   "background_color": "#ffffff",
