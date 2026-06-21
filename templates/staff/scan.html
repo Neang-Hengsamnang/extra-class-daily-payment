@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}ស្កេន QR Code{% endblock %}
+{% block extra_head %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+  /* iOS Safari inline video playback */
+  #reader video {
+    width: 100% !important;
+    height: auto !important;
+    display: block;
+  }
+  #reader {
+    width: 100%;
+    max-width: 500px;
+    margin: auto;
+  }
+
+  /* Searchable dropdown */
+  #student-search-wrapper {
+    position: relative;
+  }
+  #student-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 0.375rem 0.375rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: #fff;
+  }
+  #student-results .list-group-item-action:hover {
+    background-color: #f0f4ff;
+  }
+  #student-results mark {
+    background-color: #fff3cd;
+    border-radius: 2px;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <h2 class="mb-3">កត់ត្រាការបង់ប្រាក់</h2>
+
+        <ul class="nav nav-tabs mb-3" id="inputTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan-panel" type="button">
+                    <i class="bi bi-camera"></i> ស្កេន QR
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="select-tab" data-bs-toggle="tab" data-bs-target="#select-panel" type="button">
+                    <i class="bi bi-person-search"></i> ជ្រើសរើសសិស្ស
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="inputTabsContent">
+
+            <!-- QR Scan Tab -->
+            <div class="tab-pane fade show active" id="scan-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div id="reader" style="width:100%; max-width:500px; min-height:300px; margin:auto;"></div>
+                        <div id="scan-result" class="mt-3"></div>
+                        <button id="start-scan-btn" class="btn btn-primary btn-lg mt-3" type="button">
+                            <i class="bi bi-camera"></i> ចាប់ផ្តើមស្កេន
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Select Student Tab -->
+            <div class="tab-pane fade" id="select-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <label class="form-label fw-semibold">ស្វែងរកសិស្ស:</label>
+
+                        <div id="student-search-wrapper" class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input
+                                    type="text"
+                                    id="student-search"
+                                    class="form-control form-control-lg"
+                                    placeholder="វាយបញ្ចូលឈ្មោះឬលេខសម្គាល់..."
+                                    autocomplete="off"
+                                    autocorrect="off"
+                                    autocapitalize="off"
+                                    spellcheck="false"
+                                >
+                            </div>
+                            <!-- Results dropdown -->
+                            <ul id="student-results" class="list-group d-none"></ul>
+                        </div>
+
+                        <!-- Hidden field holds the selected student ID -->
+                        <input type="hidden" id="selected-student-id">
+                        <small id="selected-student-name" class="text-success fw-semibold"></small>
+
+                        <div class="mt-3">
+                            <button id="select-student-btn" class="btn btn-success btn-lg w-100" type="button" disabled>
+                                <i class="bi bi-check-circle"></i> បញ្ចូលសិស្សដែលបានជ្រើស
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">ផ្ទៀងផ្ទាត់ការបង់ប្រាក់</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-3">
+            <h4 id="student-name" class="mb-1" style="display: inline;"></h4> •
+            <small class="text-muted">ID: <span id="student-id"></span></small> •
+            <small class="text-muted" id="student-info"></small>
+        </div>
+
+        <div class="card bg-light mb-3">
+            <div class="card-body">
+                <h6>ជ្រើសរើសវគ្គសិក្សា:</h6>
+                <div id="courses-checkboxes"></div>
+            </div>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="tabs-check">
+            <label class="form-check-label" for="tabs-check">
+                <strong>ជំពាក់សិន</strong> - សិស្សនឹងបង់ប្រាក់នៅពេលក្រោយ
+            </label>
+        </div>
+
+        <div class="alert alert-info text-center">
+            <h5 class="mb-0">សរុប: ៛<span id="total-display">0.00</span></h5>
+        </div>
+
+        <div id="payment-status" class="text-center" style="display:none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">កំពុងដំណើរការ...</span>
+            </div>
+            <p class="mt-2">កំពុងកត់ត្រាការបង់ប្រាក់...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+        <button type="button" class="btn btn-primary btn-lg" id="confirm-btn">រក្សាទុក</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toast-message">
+                កត់ត្រាការបង់ប្រាក់ដោយជោគជ័យ!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Record Found Modal -->
+<div class="modal fade" id="todayRecordModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title">💾 ព័ត៌មានបង់ប្រាក់ថ្ងៃនេះ</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info mb-3">
+          <strong>សិស្ស:</strong> <span id="today-record-student-name"></span> <br>
+          <strong>ថ្ងៃទី:</strong> <span id="today-record-date"></span> <br>
+          <strong>វគ្គសិក្សាដែលបង់រួច:</strong> <span id="today-record-courses"></span>
+        </div>
+
+        <div class="card bg-light mb-3">
+            <div class="card-body">
+                <h6>បង់ប្រាក់វគ្គសិក្សាថ្មី/បន្ថែម:</h6>
+                <div id="today-record-new-courses"></div>
+            </div>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="today-record-tabs-check">
+            <label class="form-check-label" for="today-record-tabs-check">
+                <strong>ជំពាក់សិន</strong> - សិស្សនឹងបង់ប្រាក់នៅពេលក្រោយ
+            </label>
+        </div>
+
+        <div class="alert alert-info text-center">
+            <h5 class="mb-0">សរុប: ៛<span id="today-record-total-display">0.00</span></h5>
+        </div>
+
+        <div id="today-record-status" class="text-center" style="display:none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">កំពុងដំណើរការ...</span>
+            </div>
+            <p class="mt-2">កំពុងកែប្រែកំណត់ត្រាការបង់ប្រាក់...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">មិនផ្លាស់ប្តូរ</button>
+        <button type="button" class="btn btn-warning btn-lg" id="today-record-update-btn">កែសម្រួល និងរក្សាទុក</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/scan.js') }}"></script>
+{% endblock %}

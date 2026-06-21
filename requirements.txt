@@ -1,0 +1,12 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+Werkzeug
+qrcode[pil]
+Pillow
+pyOpenSSL
+cryptography
+gspread
+google-auth-oauthlib
+google-auth-httplib2

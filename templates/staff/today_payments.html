@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}ការទូទាត់ថ្ងៃនេះ{% endblock %}
+{% block content %}
+<h2>កំណត់ត្រាបង់ប្រាក់នៅថ្ងៃនេះ - {{ now.strftime('%Y-%m-%d') if now else '' }}</h2>
+<p class="text-muted">កំណត់ត្រាសម្រាប់ថ្ងៃនេះ</p>
+
+{% if payments %}
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>សិស្ស</th>
+                <th>ភេទ</th>
+                <th>ថ្នាក់</th>
+                <th>វគ្គសិក្សា</th>
+                <th>សរុប</th>
+                <th>ស្ថានភាព</th>
+                <th>កត់ត្រាដោយ</th>
+                <th>សកម្មភាព</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in payments %}
+            <tr>
+                <td>{{ p.id }}</td>
+                <td>{{ p.student.full_name }} ({{ p.student.id }})</td>
+                <td>{{ p.student.gender if p.student.gender else '-' }}</td>
+                <td>{{ p.student.grade_level if p.student.grade_level else '-' }}</td>
+                <td>
+                    {% for pc in p.courses %}
+                        {{ pc.course.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </td>
+                <td>៛{{ "%.2f"|format(p.total_amount) }}</td>
+                <td>
+                    {% if p.is_paid %}
+                        <span class="badge bg-success">Paid</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Tabs</span>
+                    {% endif %}
+                </td>
+                <td>{{ p.recorded_by_user.username if p.recorded_by_user else 'មិនស្គាល់' }}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" 
+                            data-payment-id="{{ p.id }}" data-student-name="{{ p.student.full_name }}" 
+                            data-amount="{{ "%.2f"|format(p.total_amount) }}" title="Delete Payment">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">មិនទាន់មានកំណត់ត្រាបង់ប្រាក់នៅឡើយទេនៅថ្ងៃនេះ</div>
+{% endif %}
+
+<a href="{{ url_for('staff.scan') }}" class="btn btn-primary">ស្កេន​  QR Code បង់ប្រាក់</a>
+
+<!-- Delete Payment Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">លុបការបង់ប្រាក់</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger"><strong>⚠️ ព្រមាន:</strong> សកម្មភាពនេះមិនអាចត្រឡប់ក្រោយបានទេ។</p>
+                <p>តើអ្នកប្រាកដជាចង់លុបកំណត់ត្រានេះមែនទេ?</p>
+                <div class="alert alert-warning mb-3">
+                    <strong>សិស្ស:</strong> <span id="modalStudentName"></span><br>
+                    <strong>ទឹកប្រាក់:</strong> ៛<span id="modalAmount"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> លុបការបង់ប្រាក់
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const paymentId = button.getAttribute('data-payment-id');
+        const studentName = button.getAttribute('data-student-name');
+        const amount = button.getAttribute('data-amount');
+        
+        document.getElementById('modalStudentName').textContent = studentName;
+        document.getElementById('modalAmount').textContent = amount;
+        
+        const form = document.getElementById('deleteForm');
+        form.action = `/staff/payment/${paymentId}/delete`;
+    });
+</script>
+{% endblock %}

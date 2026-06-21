@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}គ្រប់គ្រងវគ្គសិក្សា{% endblock %}
+{% block content %}
+<h2>វគ្គសិក្សា</h2>
+<button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addCourseModal">បន្ថែមវគ្គសិក្សា</button>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>លេខសម្គាល់</th>
+            <th>ឈ្មោះវគ្គសិក្សា</th>
+            <th>តម្លៃវគ្គសិក្សា</th>
+            <th>សកម្មភាព</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for course in courses %}
+        <tr>
+            <td>{{ course.id }}</td>
+            <td>{{ course.name }}</td>
+            <td>៛{{ "%.2f"|format(course.daily_fee) }}</td>
+            <td>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editCourseModal{{ course.id }}">កែសម្រួល</button>
+                <button type="button" class="btn btn-sm btn-danger delete-course-btn" 
+                        data-course-id="{{ course.id }}" data-course-name="{{ course.name }}" 
+                        data-bs-toggle="modal" data-bs-target="#deleteCourseModal" title="លុប">
+                    <i class="bi bi-trash"></i> លុប
+                </button>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<!-- Add Course Modal -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('admin.add_course') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">បន្ថែមវគ្គសិក្សាថ្មី</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">ឈ្មោះវគ្គសិក្សា</label>
+            <input type="text" name="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">តម្លៃវគ្គសិក្សា (៛)</label>
+            <input type="number" name="daily_fee" class="form-control" step="0.01" min="0" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+          <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Course Modals (one per course) -->
+{% for course in courses %}
+<div class="modal fade" id="editCourseModal{{ course.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('admin.edit_course', id=course.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">កែសម្រួលវគ្គសិក្សា #{{ course.id }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">ឈ្មោះវគ្គសិក្សា</label>
+            <input type="text" name="name" class="form-control" value="{{ course.name }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">តម្លៃវគ្គសិក្សា (៛)</label>
+            <input type="number" name="daily_fee" class="form-control" step="0.01" min="0" value="{{ "%.2f"|format(course.daily_fee) }}" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+          <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Delete Course Confirmation Modal -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">លុបវគ្គសិក្សា</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>តើអ្នកប្រាកដថាពិតជាចង់លុបវគ្គសិក្សា <strong id="deleteCourseName"></strong> ឬ?</p>
+        <p class="text-muted small">សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+        <a id="deleteConfirmBtn" href="#" class="btn btn-danger">លុប</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Handle delete button clicks
+document.addEventListener('show.bs.modal', function (e) {
+  if (e.target.id === 'deleteCourseModal') {
+    const trigger = e.relatedTarget;
+    if (trigger && trigger.classList.contains('delete-course-btn')) {
+      const courseId = trigger.getAttribute('data-course-id');
+      const courseName = trigger.getAttribute('data-course-name');
+      
+      document.getElementById('deleteCourseName').textContent = courseName;
+      document.getElementById('deleteConfirmBtn').href = "/admin/course/delete/" + courseId;
+    }
+  }
+});
+</script>
+{% endblock %}

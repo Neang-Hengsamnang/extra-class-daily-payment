@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}របាយការណ៍ប្រចាំខែ{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block content %}
+<h2>របាយការណ៍ប្រចាំខែ - {{ year }}/{{ month }}</h2>
+<form method="GET" class="row g-2 mb-3">
+    <div class="col-auto">
+        <input type="number" name="year" class="form-control" value="{{ year }}" placeholder="Year" min="2021">
+    </div>
+    <div class="col-auto">
+        <select name="month" class="form-select">
+            {% for m in range(1,13) %}
+            <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">បង្ហាញ</button>
+    </div>
+    <div class="col-auto">
+        <button type="button" class="btn btn-success" id="exportGoogleSheetsBtn" onclick="exportToGoogleSheets()">
+            <i class="bi bi-google"></i> នាំយកទៅ Google Sheets
+        </button>
+    </div>
+</form>
+
+<!-- Export Result Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" id="exportModalHeader">
+                <h5 class="modal-title" id="exportModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="exportModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បិទ</button>
+                <button type="button" class="btn btn-primary" id="openSheetBtn" style="display:none;">
+                    <i class="bi bi-box-arrow-up-right"></i> បើក Google Sheet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6"><canvas id="revenueChart"></canvas></div>
+    <div class="col-md-6"><canvas id="attendanceChart"></canvas></div>
+    <div class="col-md-6"><canvas id="courseChart"></canvas></div>
+    <div class="col-md-6"><canvas id="paidPieChart"></canvas></div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">ទិន្នន័យសង្ខេប</div>
+    <div class="card-body">
+        <p>សរុបប្រាក់ចំណូល: ៛{{ "%.2f"|format(total_revenue) }}</p>
+        <p>សរុបប្រាក់ដែលបានទទួល: ៛{{ "%.2f"|format(total_paid) }}</p>
+        <p>សរុបប្រាក់ជំពាក់: ៛{{ "%.2f"|format(total_tabs) }}</p>
+        <p>ចំនួនសិស្សមករៀនជាមធ្យម: {{ average_attendance }} នាក់</p>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const labels = {{ labels|tojson }};
+    const revenueData = {{ revenue_series|tojson }};
+    const presentData = {{ present_series|tojson }};
+    const absentData = {{ absent_series|tojson }};
+    const courseKeys = {{ course_revenue_keys|tojson }};
+    const courseValues = {{ course_revenue_values|tojson }};
+    const totalPaid = {{ total_paid }};
+    const totalTabs = {{ total_tabs }};
+
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Daily Revenue (៛)', data: revenueData, borderColor: 'blue' }] }
+    });
+    new Chart(document.getElementById('attendanceChart'), {
+        type: 'line',
+        data: { labels, datasets: [
+            { label: 'Present', data: presentData, borderColor: 'green' },
+            { label: 'Absent', data: absentData, borderColor: 'red' }
+        ]}
+    });
+    new Chart(document.getElementById('courseChart'), {
+        type: 'bar',
+        data: { labels: courseKeys, datasets: [{ label: 'Revenue by Course (៛)', data: courseValues }] }
+    });
+    new Chart(document.getElementById('paidPieChart'), {
+        type: 'pie',
+        data: { labels: ['Paid', 'Tabs'], datasets: [{ data: [totalPaid, totalTabs] }] }
+    });
+
+    // Export to Google Sheets function
+    let exportUrl = null;
+    
+    async function exportToGoogleSheets() {
+        const year = {{ year }};
+        const month = {{ month }};
+        const btn = document.getElementById('exportGoogleSheetsBtn');
+        const originalText = btn.innerHTML;
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>កំពុងនាំយក...';
+            
+            const response = await fetch('/api/export-monthly-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    year: year,
+                    month: month,
+                    spreadsheet_name: `Monthly_Payment_${year}_${String(month).padStart(2, '0')}`
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showExportModal(true, 'សៀវភៅបង្ហាញទិន្នន័យបានបង្កើតដោយជោគជ័យ!', data.spreadsheet_name || 'Monthly_Payment', data.spreadsheet_url);
+                exportUrl = data.spreadsheet_url;
+            } else {
+                const errorMsg = data.error || 'ការនាំយកបរាជ័យ';
+                showExportModal(false, 'កំហុស', errorMsg);
+            }
+        } catch (error) {
+            showExportModal(false, 'កំហុស', error.message);
+            console.error('Export exception:', error);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+    
+    function showExportModal(isSuccess, title, message, url = null) {
+        const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+        const header = document.getElementById('exportModalHeader');
+        const body = document.getElementById('exportModalBody');
+        const openBtn = document.getElementById('openSheetBtn');
+        
+        // Set header color and title
+        if (isSuccess) {
+            header.className = 'modal-header bg-success text-white';
+            body.innerHTML = `<div class="alert alert-success" role="alert">
+                <i class="bi bi-check-circle"></i> <strong>${title}</strong>
+                <br><br>
+                <small class="text-muted">សៀវភៅឯកសារ៖ <strong>${message}</strong></small>
+            </div>`;
+            openBtn.style.display = 'block';
+            openBtn.onclick = () => {
+                window.open(url, '_blank');
+                modal.hide();
+            };
+        } else {
+            header.className = 'modal-header bg-danger text-white';
+            body.innerHTML = `<div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-circle"></i> <strong>${title}:</strong> ${message}
+            </div>`;
+            openBtn.style.display = 'none';
+        }
+        
+        document.getElementById('exportModalLabel').textContent = title;
+        modal.show();
+    }
+</script>
+{% endblock %}

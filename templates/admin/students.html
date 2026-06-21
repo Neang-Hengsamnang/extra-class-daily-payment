@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}គ្រប់គ្រងសិស្ស{% endblock %}
+{% block content %}
+<h2>សិស្ស</h2>
+<button class="btn btn-success mb-2" data-bs-toggle="modal" data-bs-target="#addModal">បន្ថែមសិស្ស</button>
+<table class="table">
+<thead><tr><th>ID</th><th>ឈ្មោះ</th><th>ភេទ</th><th>ថ្នាក់</th><th>វគ្គសិក្សា</th><th>នៅរៀន</th><th>QR</th><th>សកម្មភាព</th></tr></thead>
+<tbody>
+{% for s in students %}
+<tr>
+    <td>{{ s.id }}</td>
+    <td>{{ s.full_name }}</td>
+    <td>{{ s.gender if s.gender else '-' }}</td>
+    <td>{{ s.grade_level if s.grade_level else '-' }}</td>
+    <td>{{ s.default_course.name if s.default_course }}</td>
+    <td>{{ 'នៅរៀន' if s.is_active else 'ឈប់រៀន' }}</td>
+    <td><a href="{{ url_for('static', filename='qrcodes/' + s.qr_code_filename) }}" target="_blank">មើល</a></td>
+    <td>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ s.id }}">កែប្រែ</button>
+        {% if s.is_active %}
+        <a href="{{ url_for('admin.deactivate_student', id=s.id) }}" class="btn btn-sm btn-warning">ដាក់ឈ្មោះឈប់រៀន</a>
+        {% else %}
+        <a href="{{ url_for('admin.activate_student', id=s.id) }}" class="btn btn-sm btn-success">ដាក់ឈ្មោះចូលរៀនវិញ</a>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-danger delete-student-btn" 
+                data-student-id="{{ s.id }}" data-student-name="{{ s.full_name }}" 
+                data-bs-toggle="modal" data-bs-target="#deleteStudentModal" title="លុប">
+            <i class="bi bi-trash"></i> លុប
+        </button>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addModal">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('admin.add_student') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-content">
+        <div class="modal-header"><h5>បន្ថែមសិស្ស</h5></div>
+        <div class="modal-body">
+          <input type="text" name="full_name" class="form-control mb-2" placeholder="ឈ្មោះពេញលេញ" required>
+          <select name="gender" class="form-select mb-2">
+            <option value="">ជ្រើសរើសភេទ</option>
+            <option value="ប្រុស">ប្រុស</option>
+            <option value="ស្រី">ស្រី</option>
+          </select>
+          <input type="text" name="grade_level" class="form-control mb-2" placeholder="ថ្នាក់ (ឧ. ថ្នាក់ ១០)">
+          <select name="default_course_id" class="form-select" required>
+            <option value="">ជ្រើសរើសវគ្គសិក្សា</option>
+            {% for c in courses %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">បន្ថែម</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Student Modals -->
+{% for s in students %}
+<div class="modal fade" id="editModal{{ s.id }}">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('admin.edit_student', id=s.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-content">
+        <div class="modal-header"><h5>កែសម្រួលព័ត៌មានសិស្ស</h5></div>
+        <div class="modal-body">
+          <input type="text" name="full_name" class="form-control mb-2" placeholder="ឈ្មោះពេញលេញ" value="{{ s.full_name }}" required>
+          <select name="gender" class="form-select mb-2">
+            <option value="">ជ្រើសរើសភេទ</option>
+            <option value="ប្រុស" {% if s.gender == 'ប្រុស' %}selected{% endif %}>ប្រុស</option>
+            <option value="ស្រី" {% if s.gender == 'ស្រី' %}selected{% endif %}>ស្រី</option>
+          </select>
+          <input type="text" name="grade_level" class="form-control mb-2" placeholder="ថ្នាក់ (ឧ. ថ្នាក់ ១០)" value="{{ s.grade_level or '' }}">
+          <select name="default_course_id" class="form-select mb-2" required>
+            {% for c in courses %}
+            <option value="{{ c.id }}" {% if c.id == s.default_course_id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_active" value="true" id="active{{ s.id }}" {% if s.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="active{{ s.id }}">នៅរៀន?</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">ធ្វើបច្ចុប្បន្នភាព</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Delete Student Confirmation Modal -->
+<div class="modal fade" id="deleteStudentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">លុបសិស្ស</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>តើអ្នកប្រាកដថាពិតជាចង់លុបសិស្ស <strong id="deleteStudentName"></strong> ឬ?</p>
+        <p class="text-muted small">សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+        <a id="deleteStudentConfirmBtn" href="#" class="btn btn-danger">លុប</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Handle delete button clicks
+document.addEventListener('show.bs.modal', function (e) {
+  if (e.target.id === 'deleteStudentModal') {
+    const trigger = e.relatedTarget;
+    if (trigger && trigger.classList.contains('delete-student-btn')) {
+      const studentId = trigger.getAttribute('data-student-id');
+      const studentName = trigger.getAttribute('data-student-name');
+      
+      document.getElementById('deleteStudentName').textContent = studentName;
+      document.getElementById('deleteStudentConfirmBtn').href = "/admin/student/delete/" + studentId;
+    }
+  }
+});
+</script>
+{% endblock %}

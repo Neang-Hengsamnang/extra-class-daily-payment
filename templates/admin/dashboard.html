@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}ផ្ទាំងគ្រប់គ្រងរបស់អែតមីន{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Admin Dashboard</h2>
+        <p class="lead">Welcome, {{ current_user.username }}!</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4 mb-3">
+        <div class="card text-bg-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title">Manage Students</h5>
+                <p class="card-text">Add, edit, or deactivate students</p>
+                <a href="{{ url_for('admin.students') }}" class="btn btn-light">Go</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-bg-success">
+            <div class="card-body text-center">
+                <h5 class="card-title">Manage Courses</h5>
+                <p class="card-text">Add or update courses & fees</p>
+                <a href="{{ url_for('admin.courses') }}" class="btn btn-light">Go</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-bg-warning">
+            <div class="card-body text-center">
+                <h5 class="card-title">Daily Report</h5>
+                <p class="card-text">View today's attendance & revenue</p>
+                <a href="{{ url_for('admin.daily_report') }}" class="btn btn-light">Go</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card text-bg-info">
+            <div class="card-body text-center">
+                <h5 class="card-title">Monthly Report</h5>
+                <p class="card-text">Charts & analytics by month</p>
+                <a href="{{ url_for('admin.monthly_report') }}" class="btn btn-light">Go</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-bg-secondary">
+            <div class="card-body text-center">
+                <h5 class="card-title">Manage Users</h5>
+                <p class="card-text">Add admin or staff accounts</p>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-light">Go</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-bg-dark">
+            <div class="card-body text-center">
+                <h5 class="card-title">Scan QR</h5>
+                <p class="card-text">Record student payments</p>
+                <a href="{{ url_for('staff.scan') }}" class="btn btn-light">Go</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

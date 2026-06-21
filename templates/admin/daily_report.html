@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}របាយការណ៍ប្រចាំថ្ងៃ{% endblock %}
+{% block content %}
+<h2>របាយការណ៍ប្រចាំថ្ងៃ</h2>
+<form method="POST" class="row g-2 mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-auto">
+        <input type="date" name="report_date" class="form-control" value="{{ selected_date }}">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">មើល</button>
+    </div>
+</form>
+
+<div class="row mb-4">
+    <div class="col-md-3"><div class="card text-bg-light"><div class="card-body">សិស្សនៅរៀនសរុប: <strong>{{ total_active }}</strong>នាក់</div></div></div>
+    <div class="col-md-3"><div class="card text-bg-success"><div class="card-body">មករៀន: <strong>{{ present_count }}</strong></div></div></div>
+    <div class="col-md-3"><div class="card text-bg-danger"><div class="card-body">អវត្តមាន: <strong>{{ absent_count }}</strong></div></div></div>
+    <div class="col-md-3"><div class="card text-bg-info"><div class="card-body">ប្រាក់ចំណូល: ៛{{ "%.0f"|format(revenue_collected) }} | សិស្សជំពាក់: ៛{{ "%.0f"|format(tabs_outstanding) }}</div></div></div>
+</div>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr><th>ឈ្មោះសិស្ស</th><th>វគ្គសិក្សាគោល</th><th>ស្ថានភាពមករៀន</th><th>វគ្គសិក្សាដែលបានចូលរួម</th><th>សរុបទឹកប្រាក់</th></tr>
+    </thead>
+    <tbody>
+    {% for row in report_rows %}
+        <tr class="{% if row.status == 'Present' %}table-success{% else %}table-danger{% endif %}">
+            <td>{{ row.student.full_name }} ({{ row.student.id }})</td>
+            <td>{{ row.student.default_course.name }}</td>
+            <td>{{ 'មករៀន' if row.status == 'Present' else 'អវត្តមាន' }}</td>
+            <td>{{ row.courses_taken }}</td>
+            <td>{{ row.amount }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}គ្រប់គ្រងអ្នកប្រើប្រាស់{% endblock %}
+{% block content %}
+<h2>អ្នកប្រើប្រាស់</h2>
+<button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">បន្ថែមអ្នកប្រើប្រាស់</button>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>លេខសម្គាល់</th>
+            <th>ឈ្មោះអ្នកប្រើប្រាស់</th>
+            <th>តួនាទី</th>
+            <th>សកម្មភាព</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td><span class="badge bg-{{ 'primary' if user.role == 'admin' else 'secondary' }}">{{ 'អែតមីន (អ្នកគ្រប់គ្រង)' if user.role == 'admin' else 'បុគ្គលិក (អ្នកស្កេន)' }}</span></td>
+            <td>
+                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}" title="កែប្រែ">
+                    <i class="bi bi-pencil"></i> កែប្រែ
+                </button>
+                {% if user.id != current_user.id %}
+                    <button type="button" class="btn btn-sm btn-danger delete-user-btn" 
+                            data-user-id="{{ user.id }}" data-username="{{ user.username }}" 
+                            data-bs-toggle="modal" data-bs-target="#deleteUserModal" title="លុប">
+                        <i class="bi bi-trash"></i> លុប
+                    </button>
+                {% endif %}
+            </td>
+        </tr>
+
+        <!-- Edit User Modal for this user -->
+        <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <form method="POST" action="{{ url_for('admin.edit_user', id=user.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">កែសម្រួលអ្នកប្រើប្រាស់</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label">ឈ្មោះអ្នកប្រើប្រាស់</label>
+                    <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">លេខសម្ងាត់ថ្មី (ទុកឱ្យនៅទទេ ប្រសិនបើមិនផ្លាស់ប្តូរ)</label>
+                    <input type="password" name="password" class="form-control" placeholder="ទុកឱ្យទទេ ប្រសិនបើមិនផ្លាស់ប្តូរ">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">តួនាទី</label>
+                    <select name="role" class="form-select" required>
+                      <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>បុគ្គលិក (អ្នកស្កេន)</option>
+                      <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>អែតមីន (អ្នកគ្រប់គ្រង)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+                  <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+    {% endfor %}
+    </tbody>
+</table>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('admin.add_user') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">បន្ថែមអ្នកប្រើប្រាស់ថ្មី</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">ឈ្មោះអ្នកប្រើប្រាស់</label>
+            <input type="text" name="username" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">លេខសម្ងាត់</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">តួនាទី</label>
+            <select name="role" class="form-select" required>
+              <option value="staff">បុគ្គលិក (អ្នកស្កេន)</option>
+              <option value="admin">អែតមីន (អ្នកគ្រប់គ្រង)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+          <button type="submit" class="btn btn-primary">រក្សាទុក</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">លុបអ្នកប្រើប្រាស់</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>តើអ្នកប្រាកដថាពិតជាចង់លុបអ្នកប្រើប្រាស់ <strong id="deleteUsername"></strong> ឬ?</p>
+        <p class="text-muted small">សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
+        <a id="deleteConfirmBtn" href="#" class="btn btn-danger">លុប</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Handle delete button clicks
+document.addEventListener('show.bs.modal', function (e) {
+  if (e.target.id === 'deleteUserModal') {
+    const trigger = e.relatedTarget;
+    if (trigger && trigger.classList.contains('delete-user-btn')) {
+      const userId = trigger.getAttribute('data-user-id');
+      const username = trigger.getAttribute('data-username');
+      
+      document.getElementById('deleteUsername').textContent = username;
+      document.getElementById('deleteConfirmBtn').href = "/admin/user/delete/" + userId;
+    }
+  }
+});
+</script>
+{% endblock %}

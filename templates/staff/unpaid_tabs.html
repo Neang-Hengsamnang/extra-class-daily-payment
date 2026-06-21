@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}ការបង់ប្រាក់ដែលជំពាក់{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>ការបង់ប្រាក់ដែលជំពាក់</h2>
+        <p class="text-muted">បញ្ជីរាយនាមសិស្សទាំងអស់ដែលជំពាក់</p>
+    </div>
+    <div class="alert alert-warning mb-0" role="alert">
+        <strong>ទឹកប្រាក់ជំពាក់សរុប:</strong> ៛{{ "%.2f"|format(total_outstanding) }}
+    </div>
+</div>
+
+{% if payments %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>និស្សិត</th>
+                    <th>សម្គាល់សិស្ស</th>
+                    <th>ភេទ</th>
+                    <th>ថ្នាក់</th>
+                    <th>កាលបរិច្ឆេទ</th>
+                    <th>វគ្គសិក្សា</th>
+                    <th class="text-end">ចំនួនទឹកលុយ</th>
+                    <th>កត់ត្រាដោយ</th>
+                    <th>សកម្មភាព</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in payments %}
+                <tr>
+                    <td>{{ p.id }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.students') }}" class="text-decoration-none">
+                            {{ p.student.full_name }}
+                        </a>
+                    </td>
+                    <td><code>{{ p.student.id }}</code></td>
+                    <td>{{ p.student.gender if p.student.gender else '-' }}</td>
+                    <td>{{ p.student.grade_level if p.student.grade_level else '-' }}</td>
+                    <td>{{ p.date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% for pc in p.courses %}
+                            <span class="badge bg-info">{{ pc.course.name }}</span>
+                            {% if not loop.last %}<br>{% endif %}
+                        {% endfor %}
+                    </td>
+                    <td class="text-end">
+                        <strong class="text-danger">៛{{ "%.2f"|format(p.total_amount) }}</strong>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ p.recorded_by_user.username if p.recorded_by_user else 'Unknown' }}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#payOffModal" 
+                                    data-payment-id="{{ p.id }}" data-student-name="{{ p.student.full_name }}" 
+                                    data-amount="{{ "%.2f"|format(p.total_amount) }}" title="Pay Off Tab">
+                                <i class="bi bi-cash-coin"></i> បង់សង
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted text-end">
+        Showing {{ payments|length }} unpaid tab{{ 's' if payments|length != 1 else '' }}
+    </div>
+</div>
+
+{% else %}
+<div class="alert alert-success" role="alert">
+    <i class="bi bi-check-circle"></i> <strong>ល្អ!</strong> មិនមានការបង់ប្រាក់ដែលជំពាក់ទេ។ ការបង់ប្រាក់ទាំងអស់គឺជាក់ស្តែងឥឡូវនេះ!
+</div>
+{% endif %}
+
+<div class="mt-4">
+    <a href="{{ url_for('staff.scan') }}" class="btn btn-primary">
+        <i class="bi bi-camera"></i> កត់ត្រាបង់ប្រាក់ថ្មី (Scan QR Code)
+    </a>
+    <a href="{{ url_for('staff.today_payments') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-calendar-day"></i> កំណត់ត្រាបង់ប្រាក់ថ្ងៃនេះ
+    </a>
+</div>
+
+<!-- Pay Off Tab Confirmation Modal -->
+<div class="modal fade" id="payOffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Confirm Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Pay off the following tab?</p>
+                <div class="alert alert-info mb-3">
+                    <strong>Student:</strong> <span id="modalStudentName"></span><br>
+                    <strong>Amount:</strong> ៛<span id="modalAmount"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="payOffForm" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Confirm Payment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const payOffModal = document.getElementById('payOffModal');
+    payOffModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const paymentId = button.getAttribute('data-payment-id');
+        const studentName = button.getAttribute('data-student-name');
+        const amount = button.getAttribute('data-amount');
+        
+        document.getElementById('modalStudentName').textContent = studentName;
+        document.getElementById('modalAmount').textContent = amount;
+        
+        const form = document.getElementById('payOffForm');
+        form.action = `/staff/payment/${paymentId}/pay-off`;
+    });
+</script>
+{% endblock %}

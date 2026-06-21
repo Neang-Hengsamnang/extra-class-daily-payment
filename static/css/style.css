@@ -1,0 +1,85 @@
+/* Custom styles for Student Check-In System */
+
+/* Khmer Font Configuration */
+body, h1, h2, h3, h4, h5, h6, .navbar, .nav-link, .btn, .form-control, .table, input, select, textarea, label {
+    font-family: 'Siemreap', 'Noto Sans Khmer', sans-serif;
+}
+
+body {
+    padding-bottom: 20px;
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.table th {
+    background-color: #f1f3f5;
+}
+
+#reader {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+#reader video {
+    border-radius: 8px;
+}
+
+.modal-body .form-check {
+    border-bottom: 1px solid #eee;
+}
+
+.modal-body .form-check:last-child {
+    border-bottom: none;
+}
+
+#total-display {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.status-present {
+    background-color: #d1e7dd !important;
+}
+
+.status-absent {
+    background-color: #f8d7da !important;
+}
+
+canvas {
+    max-height: 300px;
+    margin-bottom: 20px;
+}
+
+/* Mobile-friendly adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+    }
+}

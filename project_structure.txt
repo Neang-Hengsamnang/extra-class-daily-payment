@@ -1,0 +1,34 @@
+student_checkin/
+├── app.py                  # Main Flask app, config, and initialization
+├── models.py               # SQLAlchemy models
+├── extensions.py               
+├── auth.py                 # Authentication blueprint (login/logout)
+├── admin.py                # Admin blueprint (management, reports)
+├── staff.py                # Staff blueprint (scanning, today's payments)
+├── api.py                  # API blueprint (student info, payment recording)
+├── seed.py                 # Script to create tables and seed initial data
+├── requirements.txt        # Python dependencies
+├── templates/
+│   ├── base.html           # Base layout (Bootstrap 5 + PWA meta + nav)
+│   ├── login.html
+│   ├── admin/
+│   │   ├── dashboard.html
+│   │   ├── users.html
+│   │   ├── students.html   # List/add/edit students
+│   │   ├── courses.html    # List/add/edit courses
+│   │   ├── daily_report.html
+│   │   └── monthly_report.html
+│   └── staff/
+│       ├── scan.html       # QR scanner with confirmation modal
+│       └── today_payments.html
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   ├── scan.js         # html5-qrcode integration & AJAX
+│   │   └── charts.js       # Chart.js logic for monthly report
+│   ├── manifest.json
+│   ├── service-worker.js
+│   ├── icons/              # (optional) Place your icon-192.png and icon-512.png here
+│   └── qrcodes/            # Generated QR images stored here
+└── README.md
