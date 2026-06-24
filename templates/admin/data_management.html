@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}ការគ្រប់គ្រងទិន្នន័យ{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">📊 ការគ្រប់គ្រងទិន្នន័យ</h1>
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Export Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📤 នាំទិន្នន័យសិស្សចេញជា Excel</h5>
+                </div>
+                <div class="card-body">
+                    <p>ទាញយកទិន្នន័យសិស្សទាំងអស់ (ID, Full Name, Gender, Grade Level) ជា file Excel មួយ។ ប្រើវាជា File Backup មួយ ឬសម្រាប់រៀបចំទិន្នន័យក្នុងការនាំចូល។</p>
+                    <a href="{{ url_for('admin.export_students') }}" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> ទាញយកទិន្នន័យសិស្សជា Excel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Import Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">📥 នាំទិន្នន័យសិស្សចូល</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>ការណែនាំ:</strong></p>
+                    <ul>
+                        <li>សូម upload ជា file excel មួយ (.xlsx or .xls) ជាមួយជួរឈរ (headers are case‑insensitive):
+                            <code>id</code>, <code>full_name</code>, <code>gender</code> (optional), <code>grade_level</code> (optional).</li>
+                        <li><strong>យ៉ាងហោចណាស់ <code>id</code> និង <code>full_name</code> គឺទាមទារត្រូវតែមាន</strong> ក្នុងជួរដេកនីមួយៗ។</li>
+                        <li><strong>Student IDs:</strong> ប្រសិនបើ ID មានរួចហើយ នោះទិន្នន័យនឹង <strong>ត្រូវបានធ្វើបច្ចុប្បន្នភាព</strong>។ ផ្ទុយមកវិញ, ទិន្នន័យថ្មីនឹងត្រូវបានបង្កើត។</li>
+                        <li><strong>Gender</strong> គួរតែជា "ប្រុស" or "ស្រី" (ឬទុកទទេរក៏បាន)។</li>
+                        <li><strong>Grade Level</strong> អាចជាអក្សរ (ឧ. "ថ្នាក់ទី 10")។</li>
+                        <li><strong>Default Course</strong> (optional) ត្រូវតែមានឈ្មោះដូចគ្នាជាក់ស្ដែងទៅនិងទិន្នន័យវគ្គសិក្សាដែលមានស្រាប់។ ប្រសិនបើរកមិនឃើញ វានឹងបន្សល់ទុកនៅឱ្យទទេ។</li>
+                    </ul>
+
+                    <div class="mt-3">
+                        <p><strong>ទាញយក File គំរូ ដើម្បីយកទៅបំពេញ:</strong></p>
+                        <a href="{{ url_for('static', filename='sample_import.xlsx') }}" class="btn btn-outline-secondary btn-sm" download>
+                            <i class="fas fa-download"></i> ទាញយក File គំរូ
+                        </a>
+                    </div>
+
+                    <form action="{{ url_for('admin.import_students') }}" method="post" enctype="multipart/form-data" class="mt-3">
+                        <div class="input-group">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-upload"></i> Upload និងទាញទិន្នន័យចូល
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> ត្រឡប់ទៅផ្ទាំងគ្រប់គ្រងវិញ
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-dismiss alerts after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            document.querySelectorAll('.alert').forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+</script>
+{% endblock %}

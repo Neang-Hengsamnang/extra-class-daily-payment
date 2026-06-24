@@ -1,34 +1,43 @@
-student_checkin/
-├── app.py                  # Main Flask app, config, and initialization
-├── models.py               # SQLAlchemy models
-├── extensions.py               
-├── auth.py                 # Authentication blueprint (login/logout)
-├── admin.py                # Admin blueprint (management, reports)
-├── staff.py                # Staff blueprint (scanning, today's payments)
-├── api.py                  # API blueprint (student info, payment recording)
-├── seed.py                 # Script to create tables and seed initial data
-├── requirements.txt        # Python dependencies
-├── templates/
-│   ├── base.html           # Base layout (Bootstrap 5 + PWA meta + nav)
-│   ├── login.html
-│   ├── admin/
-│   │   ├── dashboard.html
-│   │   ├── users.html
-│   │   ├── students.html   # List/add/edit students
-│   │   ├── courses.html    # List/add/edit courses
-│   │   ├── daily_report.html
-│   │   └── monthly_report.html
-│   └── staff/
-│       ├── scan.html       # QR scanner with confirmation modal
-│       └── today_payments.html
+extra-class-daily-payment/
+├── app.py                     # Main Flask application entry point
+├── admin.py                   # Admin blueprint (dashboard, student management, import/export)
+├── api.py                     # API endpoints for QR check-in and payments
+├── auth.py                    # Authentication routes (login, logout, registration)
+├── staff.py                   # Staff blueprint (daily check-in, QR scanning)
+├── models.py                  # Database models (User, Course, Student, Payment, etc.)
+├── extensions.py              # Flask extensions (db, login_manager, etc.)
+├── seed.py                    # Script to seed initial data (courses, default users)
+├── generate_ssl.py            # Script to generate self-signed SSL certificate
+├── export_google_sheets.py    # Export payments to Google Sheets
+├── requirements.txt           # Python dependencies
+├── GOOGLE_SHEETS_SETUP.md     # Setup guide for Google Sheets integration
+├── README.md                  # Project documentation
+├── project_structure.txt      # This file
 ├── static/
-│   ├── css/
-│   │   └── style.css
-│   ├── js/
-│   │   ├── scan.js         # html5-qrcode integration & AJAX
-│   │   └── charts.js       # Chart.js logic for monthly report
-│   ├── manifest.json
-│   ├── service-worker.js
-│   ├── icons/              # (optional) Place your icon-192.png and icon-512.png here
-│   └── qrcodes/            # Generated QR images stored here
-└── README.md
+│   ├── css/                   # Custom CSS styles
+│   ├── js/                    # JavaScript (QR scanning, dashboard charts)
+│   ├── qrcodes/               # Generated QR code images for students
+│   ├── sample_import.xlsx     # Sample Excel template for importing students
+│   ├── manifest.json          # PWA manifest
+│   ├── service-worker.js                  # Service worker for offline support
+│   └── icons/                 # App icons for PWA
+├── templates/
+│   ├── base.html              # Base layout template
+│   ├── login.html             # Login page
+│   ├── admin/
+│   │   ├── dashboard.html     # Admin dashboard
+│   │   ├── students.html      # Student list and management
+│   │   ├── courses.html       # Course management
+│   │   ├── daily_report.html  # Daily Reporting
+│   │   ├── monthly_report.html  # Monthly Reporting and charts
+│   │   ├── data_management.html # Import/Export page
+│   │   ├── print_qr_cards.html # QR card printing layout
+│   │   └── users.html # Users management
+│   └── staff/
+│       ├── today_payments.html # Daily check-in view
+│       ├── scan.html          # QR scanner page
+│       └── unpaid_tabs.html   # Unpaid payment management
+├── checkin.db                  # (created at runtime) SQLite database file
+└── ssl/                       # (created by generate_ssl.py) SSL certificates
+    ├── cert.pem
+    └── key.pem

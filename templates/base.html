@@ -34,9 +34,9 @@
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.dashboard') }}">ផ្ទាំងគ្រប់គ្រង</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.students') }}">សិស្ស</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.courses') }}">វគ្គសិក្សា</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.users') }}">អ្នកប្រើប្រាស់</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.daily_report') }}">របាយការណ៍ប្រចាំថ្ងៃ</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.monthly_report') }}">របាយការណ៍ប្រចាំខែ</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.users') }}">អ្នកប្រើប្រាស់</a></li>
                         {% endif %}
                         {% if current_user.role in ('staff', 'admin') %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('staff.scan') }}">ស្កេន</a></li>
@@ -44,7 +44,7 @@
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('staff.unpaid_tabs') }}">បញ្ជីឈ្មោះអ្នកជំពាក់</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('staff.daily_report') }}">របាយការណ៍ប្រចាំថ្ងៃ</a></li>
                         {% endif %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">ចាកចេញ ({{ current_user.username }})</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">ចាកចេញពី ({{ current_user.username }})</a></li>
                     {% endif %}
                 </ul>
             </div>

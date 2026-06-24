@@ -3,8 +3,8 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h2>Admin Dashboard</h2>
-        <p class="lead">Welcome, {{ current_user.username }}!</p>
+        <h2>ផ្ទាំងគ្រប់គ្រងរបស់អែតមីន</h2>
+        <p class="lead">សួស្តី, {{ current_user.username }}!</p>
     </div>
 </div>
 
@@ -12,27 +12,27 @@
     <div class="col-md-4 mb-3">
         <div class="card text-bg-primary">
             <div class="card-body text-center">
-                <h5 class="card-title">Manage Students</h5>
-                <p class="card-text">Add, edit, or deactivate students</p>
-                <a href="{{ url_for('admin.students') }}" class="btn btn-light">Go</a>
+                <h5 class="card-title">គ្រប់គ្រងទិន្នន័យសិស្ស</h5>
+                <p class="card-text">បន្ថែម, កែសម្រួល, លុប, ឬ ដាក់សិស្សឱ្យឈប់រៀន</p>
+                <a href="{{ url_for('admin.students') }}" class="btn btn-light">បើក</a>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3">
         <div class="card text-bg-success">
             <div class="card-body text-center">
-                <h5 class="card-title">Manage Courses</h5>
-                <p class="card-text">Add or update courses & fees</p>
-                <a href="{{ url_for('admin.courses') }}" class="btn btn-light">Go</a>
+                <h5 class="card-title">គ្រប់គ្រងវគ្គសិក្សា</h5>
+                <p class="card-text">បន្ថែម ឬ ធ្វើបច្ចុប្បន្នភាពវគ្គសិក្សា & តម្លៃវគ្គសិក្សា</p>
+                <a href="{{ url_for('admin.courses') }}" class="btn btn-light">បើក</a>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3">
         <div class="card text-bg-warning">
             <div class="card-body text-center">
-                <h5 class="card-title">Daily Report</h5>
-                <p class="card-text">View today's attendance & revenue</p>
-                <a href="{{ url_for('admin.daily_report') }}" class="btn btn-light">Go</a>
+                <h5 class="card-title">របាយការណ៍ប្រចាំថ្ងៃ</h5>
+                <p class="card-text">មើលវត្តមាន និងប្រាក់ចំណូល</p>
+                <a href="{{ url_for('admin.daily_report') }}" class="btn btn-light">បើក</a>
             </div>
         </div>
     </div>
@@ -42,27 +42,37 @@
     <div class="col-md-4 mb-3">
         <div class="card text-bg-info">
             <div class="card-body text-center">
-                <h5 class="card-title">Monthly Report</h5>
-                <p class="card-text">Charts & analytics by month</p>
-                <a href="{{ url_for('admin.monthly_report') }}" class="btn btn-light">Go</a>
+                <h5 class="card-title">របាយការណ៍ប្រចាំខែ</h5>
+                <p class="card-text">របាយការណ៍ និងវិភាគតាមខែ</p>
+                <a href="{{ url_for('admin.monthly_report') }}" class="btn btn-light">បើក</a>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3">
         <div class="card text-bg-secondary">
             <div class="card-body text-center">
-                <h5 class="card-title">Manage Users</h5>
-                <p class="card-text">Add admin or staff accounts</p>
-                <a href="{{ url_for('admin.users') }}" class="btn btn-light">Go</a>
+                <h5 class="card-title">គ្រប់គ្រងទិន្នន័យអ្នកប្រើប្រាស់</h5>
+                <p class="card-text">បន្ថែមគណនីអែតមីន ឬបុគ្គលិក</p>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-light">បើក</a>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-3">
         <div class="card text-bg-dark">
             <div class="card-body text-center">
-                <h5 class="card-title">Scan QR</h5>
-                <p class="card-text">Record student payments</p>
-                <a href="{{ url_for('staff.scan') }}" class="btn btn-light">Go</a>
+                <h5 class="card-title">ស្កេន QR</h5>
+                <p class="card-text">កត់ត្រាការបង់ប្រាក់របស់សិស្ស</p>
+                <a href="{{ url_for('staff.scan') }}" class="btn btn-light">បើក</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-file-import fa-3x mb-3 text-info"></i>
+                <h5 class="card-title">គ្រប់គ្រងទិន្នន័យ</h5>
+                <p class="card-text">នាំចូល/នាំចេញទិន្នន័យការចុះឈ្មោះសិស្សតាម Excel.</p>
+                <a href="{{ url_for('admin.data_management') }}" class="btn btn-info">គ្រប់គ្រង</a>
             </div>
         </div>
     </div>

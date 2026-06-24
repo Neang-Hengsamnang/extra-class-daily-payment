@@ -26,7 +26,8 @@ def scan():
 @staff_required
 def today_payments():
     today = date.today()
-    payments = Payment.query.filter_by(date=today).order_by(Payment.id.desc()).all()
+    payments = db.session.query(Payment).join(Student, Payment.student_id == Student.id).\
+        filter(Payment.date == today).order_by(Student.grade_level.asc(), Payment.id.desc()).all()
     return render_template('staff/today_payments.html', payments=payments)
 
 @staff_bp.route('/unpaid-tabs')

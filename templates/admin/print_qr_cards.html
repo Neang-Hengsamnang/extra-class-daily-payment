@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Cards</title>
+     <!-- Google Font for Khmer -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A4 portrait;
+            margin: 1.2cm 0.8cm; /* top/bottom 1.2cm, left/right 0.8cm to fit 4 columns */
+        }
+
+        body {
+            font-family: 'Khmer OS', 'Segoe UI', Tahoma, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .print-controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .print-controls button {
+            padding: 10px 30px;
+            font-size: 18px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .print-controls button:hover {
+            background: #0056b3;
+        }
+        .print-controls .close-btn {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        .print-controls .close-btn:hover {
+            background: #5a6268;
+        }
+
+        /* Container matches A4 page margins for preview */
+        .card-grid-container {
+            background: white;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 1.2cm 0.8cm; /* same as @page margins */
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* Each page break group */
+        .page-break {
+            page-break-after: always;
+            margin-bottom: 0;
+        }
+        .page-break:last-child {
+            page-break-after: auto;
+        }
+
+        /* The grid: 4 columns, each column exactly 4cm wide, with gaps */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 4cm); /* fixed width per column */
+            gap: 20px 20px; /* row gap 4px, column gap 6px */
+            justify-content: center; /* center the grid horizontally */
+            /* Total width = 4*4cm + 3*6px = 16cm + 18px = ~16.18cm, well within margins */
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+            padding: 4px 4px 6px 4px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e0e0e0;
+            /* Fixed size: exactly 4cm wide (already set by grid) and 5cm tall */
+            height: 5cm;
+            width: 4cm; /* fallback, though grid defines it */
+            box-sizing: border-box;
+        }
+
+        .card .qr-image {
+            width: 130px;
+            height: 130px;
+            margin: 0 auto 2px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card .qr-image img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Name and gender on same line */
+        .card .student-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a1a2e;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            padding: 0 2px;
+            font-family: 'Siemreap', 'Noto Sans Khmer', 'Khmer OS', 'Moul', sans-serif;
+        }
+
+        .card .student-id {
+            font-size: 10px;
+            color: #777;
+            font-weight: 500;
+            background: #f8f9fa;
+            padding: 1px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 1px;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            .print-controls {
+                display: none !important;
+            }
+            .card-grid-container {
+                box-shadow: none;
+                padding: 0; /* margins handled by @page */
+                max-width: 100%;
+            }
+            .card {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+                height: 5cm;
+                width: 4cm;
+            }
+            .card-grid {
+                gap: 20px 20px;
+                justify-content: center;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            .page-break:last-child {
+                page-break-after: auto;
+            }
+        }
+
+        /* Screen preview */
+        @media screen {
+            body {
+                background: #e9ecef;
+            }
+        }
+
+        /* Responsive for small screens (not printing) */
+        @media screen and (max-width: 600px) {
+            .card-grid {
+                grid-template-columns: repeat(2, 4cm);
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-controls">
+    <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <button class="close-btn" onclick="window.close()">✖ Close</button>
+    <p style="margin-top: 8px; font-size: 14px; color: #555;">Tip: Use "Save as PDF" in print dialog for digital copy.</p>
+</div>
+
+<div class="card-grid-container">
+    {% set page_size = 20 %}
+    {% set total = students|length %}
+    {% for page_num in range(0, total, page_size) %}
+        <div class="card-grid page-break">
+            {% for student in students[page_num:page_num + page_size] %}
+                <div class="card">
+                    <div class="qr-image">
+                        <img src="{{ url_for('static', filename='qrcodes/' + student.qr_code_filename) }}"
+                             alt="QR Code"
+                             loading="lazy"
+                             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22%3E%3Crect width=%2260%22 height=%2260%22 fill=%22%23f0f0f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22 font-size=%2210%22 font-family=%22sans-serif%22%3ENo QR%3C/text%3E%3C/svg%3E'">
+                    </div>
+                    <div class="student-name">
+                        {{ student.full_name }} {% if student.gender %}— {{ student.grade_level }}{% endif %}
+                    </div>
+                    <div class="student-id">{{ student.id }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+</div>
+
+<script>
+    // Optional: auto-print after load (comment out)
+    // window.onload = function() { window.print(); };
+</script>
+</body>
+</html>
