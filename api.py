@@ -1,9 +1,14 @@
+import os
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from extensions import db
 from models import Student, Course, Payment, PaymentCourse
 from datetime import date
 from export_google_sheets import create_monthly_payment_sheet
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 api_bp = Blueprint('api', __name__)
 
@@ -216,7 +221,7 @@ def export_monthly_report():
     {
         'year': 2024,
         'month': 6,
-        'spreadsheet_name': 'Optional custom name'
+        'spreadsheet_id': 'YourSpreadSheetID'
     }
     
     Returns:
@@ -225,7 +230,8 @@ def export_monthly_report():
     data = request.get_json()
     year = data.get('year')
     month = data.get('month')
-    spreadsheet_name = data.get('spreadsheet_name')
+    custom_sheet_name = data.get('custom_sheet_name')
+    spreadsheet_id =  os.getenv('SPREADSHEET_ID')
     
     if not year or not month:
         return jsonify({'error': 'Year and month are required'}), 400
@@ -234,7 +240,7 @@ def export_monthly_report():
         return jsonify({'error': 'Month must be between 1 and 12'}), 400
     
     try:
-        result = create_monthly_payment_sheet(year, month, spreadsheet_name)
+        result = create_monthly_payment_sheet(year, month, custom_sheet_name, spreadsheet_id)
         
         if 'error' in result:
             return jsonify(result), 400

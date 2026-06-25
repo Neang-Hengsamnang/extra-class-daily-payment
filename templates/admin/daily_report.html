@@ -16,7 +16,7 @@
     <div class="col-md-3"><div class="card text-bg-light"><div class="card-body">សិស្សនៅរៀនសរុប: <strong>{{ total_active }}</strong>នាក់</div></div></div>
     <div class="col-md-3"><div class="card text-bg-success"><div class="card-body">មករៀន: <strong>{{ present_count }}</strong></div></div></div>
     <div class="col-md-3"><div class="card text-bg-danger"><div class="card-body">អវត្តមាន: <strong>{{ absent_count }}</strong></div></div></div>
-    <div class="col-md-3"><div class="card text-bg-info"><div class="card-body">ប្រាក់ចំណូល: ៛{{ "%.0f"|format(revenue_collected) }} | សិស្សជំពាក់: ៛{{ "%.0f"|format(tabs_outstanding) }}</div></div></div>
+    <div class="col-md-3"><div class="card text-bg-info"><div class="card-body">ប្រាក់ចំណូល: ៛{{ "{:,.0f}".format(revenue_collected) }} | សិស្សជំពាក់: ៛{{ "{:,.0f}".format(tabs_outstanding) }}</div></div></div>
 </div>
 
 <table class="table table-bordered table-striped">

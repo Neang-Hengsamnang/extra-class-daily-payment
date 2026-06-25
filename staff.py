@@ -48,7 +48,7 @@ def pay_off_tab(payment_id):
     else:
         payment.is_paid = True
         db.session.commit()
-        flash(f'ការបង់ប្រាក់ចំនួន ៛{payment.total_amount:.0f} របស់ {payment.student.full_name} បានកត់ត្រាជោគជ័យ', 'success')
+        flash(f'ការបង់ប្រាក់ចំនួន ៛{payment.total_amount:,.0f} របស់ {payment.student.full_name} បានកត់ត្រាជោគជ័យ', 'success')
     return redirect(url_for('staff.unpaid_tabs'))
 
 @staff_bp.route('/payment/<int:payment_id>/delete', methods=['POST'])
@@ -60,7 +60,7 @@ def delete_payment(payment_id):
     amount = payment.total_amount
     db.session.delete(payment)
     db.session.commit()
-    flash(f'ការបង់ប្រាក់ ៛{amount:.0f}៛ របស់សិស្ស {student_name} ត្រូវបានលុបដោយជោគជ័យ។', 'success')
+    flash(f'ការបង់ប្រាក់ ៛{amount:,.0f}៛ របស់សិស្ស {student_name} ត្រូវបានលុបដោយជោគជ័យ។', 'success')
     return redirect(url_for('staff.today_payments'))
 
 @staff_bp.route('/daily_report', methods=['GET', 'POST'])
@@ -89,7 +89,7 @@ def daily_report():
         payment = paid_dict.get(s.id)
         if payment:
             courses_taken = ', '.join([pc.course.name for pc in payment.courses])
-            amount = f"៛{payment.total_amount:.0f} {'(Paid)' if payment.is_paid else '(Tabs)'}"
+            amount = f"៛{payment.total_amount:,.0f} {'(Paid)' if payment.is_paid else '(Tabs)'}"
             status = 'Present'
         else:
             courses_taken = '-'

@@ -33,14 +33,13 @@ def get_google_sheets_client():
     return gspread.authorize(creds)
 
 
-def create_monthly_payment_sheet(year, month, spreadsheet_id=None):
+def create_monthly_payment_sheet(year, month, custom_sheet_name, spreadsheet_id):
     """
     Open an existing Google Sheet by ID and populate a specific monthly tab.
     
-    Tab naming convention: YYYY-MM (e.g., "2026-06")
+    Tab naming convention: "Monthly_Payment_YYYY_MM" or a custom name if provided.
+    If the tab already exists, it will be cleared and repopulated.
     """
-    # Force your shared spreadsheet target ID
-    spreadsheet_id = "1sUQ9UmjCxaZua2WRr5mP8oh1NjtsuAFlMbWD1CiXsUY"
     
     try:
         client = get_google_sheets_client()
@@ -51,7 +50,7 @@ def create_monthly_payment_sheet(year, month, spreadsheet_id=None):
         spreadsheet = client.open_by_key(spreadsheet_id)
         
         # Define your new sheet tab name format
-        sheet_name = f"{year}-{month:02d}" 
+        sheet_name = custom_sheet_name 
         
         try:
             # If the monthly tab already exists, open it and clear old records
@@ -86,14 +85,14 @@ def create_monthly_payment_sheet(year, month, spreadsheet_id=None):
     days_in_month = calendar.monthrange(year, month)[1]
     
     # ===== BUILD HEADERS =====
-    header_row1 = ['Student ID', 'Student Name', 'Student Gender', 'Student Grade']
+    header_row1 = ['អត្តលេខសិស្ស', 'គោត្តនាម និងនាម', 'ភេទ', 'កម្រិតថ្នាក់']
     header_row2 = ['', '', '', '']
     
     for day in range(1, days_in_month + 1):
         header_row1.append(f"{year}/{month:02d}")
         header_row2.append(f"{day:02d}")
     
-    header_row1.extend(['Total Revenue', 'Total Tabs'])
+    header_row1.extend(['សរុបប្រាក់ចំណូល', 'សរុបប្រាក់សិស្សជំពាក់'])
     header_row2.extend(['', ''])
     
     # ===== BUILD DATA ROWS =====

@@ -695,7 +695,7 @@ document.getElementById('confirm-btn').addEventListener('click', function () {
                     const resultDiv = document.getElementById('scan-result');
                     if (resultDiv) {
                         resultDiv.innerHTML =
-                            `<div class="alert alert-success">Last: ${currentStudentData.name} - $${data.total.toFixed(0)} (${status})</div>`;
+                            `<div class="alert alert-success">Last: ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})</div>`;
                     }
                     if (isScanTabActive()) {
                         startScanner();
@@ -756,7 +756,7 @@ document.getElementById('today-record-update-btn').addEventListener('click', fun
                 modal.hide();
 
                 const status = data.is_paid ? 'Paid' : 'Tabs';
-                showToast(`ក៍ត្របង់ប្រាក់បានកែប្រែ! ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})`);
+                showToast(`កំណត់ត្រាបង់ប្រាក់បានកែប្រែ! ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})`);
 
                 setTimeout(() => {
                     const resultDiv = document.getElementById('scan-result');

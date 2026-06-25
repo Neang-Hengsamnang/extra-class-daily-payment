@@ -192,7 +192,7 @@ def daily_report():
         payment = paid_dict.get(s.id)
         if payment:
             courses_taken = ', '.join([pc.course.name for pc in payment.courses])
-            amount = f"៛{payment.total_amount:.0f} {'(Paid)' if payment.is_paid else '(Tabs)'}"
+            amount = f"៛{payment.total_amount:,.0f} {'(Paid)' if payment.is_paid else '(Tabs)'}"
             status = 'Present'
         else:
             courses_taken = '-'
