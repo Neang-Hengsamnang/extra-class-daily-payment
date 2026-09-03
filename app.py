@@ -2,6 +2,7 @@ import os
 import ssl
 from flask import Flask
 from extensions import db, login_manager, csrf
+from sqlalchemy import inspect, text
 
 def create_app():
     app = Flask(__name__)
@@ -86,6 +87,14 @@ def create_app():
     # Create tables inside app context
     with app.app_context():
         db.create_all()
+        payment_course_columns = {
+            column['name'] for column in inspect(db.engine).get_columns('payment_course')
+        }
+        if 'quantity' not in payment_course_columns:
+            db.session.execute(
+                text('ALTER TABLE payment_course ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1')
+            )
+            db.session.commit()
 
     return app
 

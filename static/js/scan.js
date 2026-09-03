@@ -1,7 +1,24 @@
 let html5QrCode;
 let currentStudentData = null;
 let isScanning = false;
-let allStudents = [];  // cache for search filtering
+
+const scanState = {
+    paymentDate: '',
+    gradeFilter: '',
+    students: [],
+    selectedStudentId: '',
+};
+
+function localISODate(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getPaymentDate() {
+    return scanState.paymentDate || localISODate();
+}
 
 // ─────────────────────────────────────────────
 // iOS FIX: Patch Html5Qrcode to inject
@@ -272,117 +289,169 @@ function playBeep() {
 }
 
 // ─────────────────────────────────────────────
-// Searchable Student Dropdown
+// Date + grade filter state
 // ─────────────────────────────────────────────
-function setupStudentDropdown() {
-    const searchInput  = document.getElementById('student-search');
-    const resultsList  = document.getElementById('student-results');
-    const hiddenInput  = document.getElementById('selected-student-id');
-    const selectedName = document.getElementById('selected-student-name');
-    const proceedBtn   = document.getElementById('select-student-btn');
+function setupPaymentDate() {
+    const dateInput = document.getElementById('payment-date');
+    if (!dateInput) return;
 
-    if (!searchInput || !resultsList || !hiddenInput || !proceedBtn) return;
+    scanState.paymentDate = localISODate();
+    dateInput.value = scanState.paymentDate;
+    updatePaymentDateHint();
 
-    // Filter and render results as user types
-    searchInput.addEventListener('input', function () {
-        const query = this.value.trim().toLowerCase();
-
-        // Clear selection when user edits the search
-        hiddenInput.value = '';
-        selectedName.textContent = '';
-        proceedBtn.disabled = true;
-
-        if (!query) {
-            resultsList.innerHTML = '';
-            resultsList.classList.add('d-none');
-            return;
+    dateInput.addEventListener('change', function () {
+        if (!this.value) {
+            this.value = localISODate();
         }
+        scanState.paymentDate = this.value;
+        updatePaymentDateHint();
+        loadStudentList();
+    });
+}
 
-        const matches = allStudents.filter(s =>
-            s.name.toLowerCase().includes(query) ||
-            s.id.toLowerCase().includes(query)
-        );
+function updatePaymentDateHint() {
+    const hint = document.getElementById('payment-date-hint');
+    if (!hint) return;
+    const selected = getPaymentDate();
+    if (selected === localISODate()) {
+        hint.textContent = 'កំពុងកត់ត្រាសម្រាប់ថ្ងៃនេះ។';
+    } else {
+        hint.textContent = `កំពុងកត់ត្រា ឬកែប្រែសម្រាប់ថ្ងៃទី ${selected}។`;
+    }
+}
 
-        renderResults(matches);
+function populateGradeFilter(grades) {
+    const select = document.getElementById('grade-filter');
+    if (!select) return;
+
+    const previous = scanState.gradeFilter;
+    select.innerHTML = '';
+
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = 'គ្រប់ថ្នាក់';
+    select.appendChild(allOption);
+
+    grades.forEach((grade) => {
+        const option = document.createElement('option');
+        option.value = grade;
+        option.textContent = grade;
+        select.appendChild(option);
     });
 
-    // Hide results when clicking outside
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('#student-search-wrapper')) {
-            resultsList.classList.add('d-none');
-        }
-    });
+    if (previous && grades.includes(previous)) {
+        select.value = previous;
+        scanState.gradeFilter = previous;
+    } else {
+        select.value = '';
+        scanState.gradeFilter = '';
+    }
+}
 
-    // Proceed button
-    proceedBtn.addEventListener('click', function () {
-        const studentId = hiddenInput.value;
-        if (!studentId) {
-            alert('សូមជ្រើសរើសសិស្ស។');
-            return;
-        }
-        fetchStudentInfo(studentId);
+function clearStudentSelection() {
+    scanState.selectedStudentId = '';
+}
+
+function resetStudentCardPanel() {
+    scanState.selectedStudentId = '';
+    refreshStudentResults();
+}
+
+function getFilteredStudents() {
+    return scanState.students.filter((student) => {
+        return !scanState.gradeFilter || student.grade_level === scanState.gradeFilter;
     });
+}
+
+function updateFilterStatus(matchCount) {
+    const status = document.getElementById('student-filter-status');
+    if (!status) return;
+
+    const gradeLabel = scanState.gradeFilter || 'គ្រប់ថ្នាក់';
+    status.textContent = `រកឃើញ ${matchCount} នាក់ (${gradeLabel})`;
+}
+
+// ─────────────────────────────────────────────
+// Student card selection
+// ─────────────────────────────────────────────
+function setupStudentCards() {
+    const gradeFilter = document.getElementById('grade-filter');
+
+    if (!gradeFilter) return;
+
+    gradeFilter.addEventListener('change', function () {
+        scanState.gradeFilter = this.value;
+        clearStudentSelection();
+        refreshStudentResults();
+    });
+}
+
+function refreshStudentResults() {
+    const matches = getFilteredStudents();
+    updateFilterStatus(matches.length);
+    renderResults(matches);
 }
 
 function renderResults(matches) {
-    const resultsList  = document.getElementById('student-results');
-    const hiddenInput  = document.getElementById('selected-student-id');
-    const searchInput  = document.getElementById('student-search');
-    const selectedName = document.getElementById('selected-student-name');
-    const proceedBtn   = document.getElementById('select-student-btn');
+    const cardsContainer = document.getElementById('student-cards');
+    if (!cardsContainer) return;
 
-    resultsList.innerHTML = '';
+    cardsContainer.innerHTML = '';
 
     if (matches.length === 0) {
-        resultsList.innerHTML = '<li class="list-group-item text-muted">No students found</li>';
-        resultsList.classList.remove('d-none');
+        const empty = document.createElement('p');
+        empty.className = 'text-muted mb-0';
+        empty.textContent = 'រកមិនឃើញសិស្ស';
+        cardsContainer.appendChild(empty);
         return;
     }
 
-    matches.slice(0, 20).forEach(student => {  // cap at 20 for performance
-        const li = document.createElement('li');
-        li.className = 'list-group-item list-group-item-action';
-        li.style.cursor = 'pointer';
+    matches.forEach((student) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = `student-card${student.checked_in ? ' is-checked-in' : ''}`;
+        card.setAttribute(
+            'aria-label',
+            `${student.checked_in ? 'Edit check-in for' : 'Select'} ${student.name}`
+        );
 
-        // Highlight matched portion
-        const query = searchInput.value.trim();
-        li.innerHTML = `
-            <span class="fw-semibold">${highlight(student.name, query)}</span>
-            <small class="text-muted ms-2">${highlight(student.id, query)}</small>
-        `;
+        const nameEl = document.createElement('span');
+        nameEl.className = 'd-block fw-semibold';
+        nameEl.textContent = student.name;
 
-        li.addEventListener('click', function () {
-            hiddenInput.value  = student.id;
-            searchInput.value  = `${student.name} (${student.id})`;
-            selectedName.textContent = '';
-            proceedBtn.disabled = false;
-            resultsList.classList.add('d-none');
+        const gradeEl = document.createElement('small');
+        gradeEl.className = 'text-muted d-block mt-2';
+        gradeEl.textContent = student.grade_level || 'Grade not set';
+
+        const statusEl = document.createElement('small');
+        statusEl.className = 'student-card-status d-block mt-2';
+        statusEl.textContent = student.checked_in ? 'កត់ត្រារួច' : 'មិនទាន់កត់ត្រា';
+
+        card.append(nameEl, gradeEl, statusEl);
+        card.addEventListener('click', () => {
+            clearStudentSelection();
+            scanState.selectedStudentId = student.id;
+            fetchStudentInfo(student.id);
         });
 
-        resultsList.appendChild(li);
+        cardsContainer.appendChild(card);
     });
-
-    resultsList.classList.remove('d-none');
-}
-
-// Wrap matching text in <mark> for highlighting
-function highlight(text, query) {
-    if (!query) return text;
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="p-0">$1</mark>');
 }
 
 function loadStudentList() {
-    fetch('/api/students', {
+    const date = encodeURIComponent(getPaymentDate());
+    fetch(`/api/students?date=${date}`, {
         headers: { 'X-CSRFToken': getCSRFToken() },
     })
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
             if (data.students && Array.isArray(data.students)) {
-                allStudents = data.students;
+                scanState.students = data.students;
             }
+            populateGradeFilter(Array.isArray(data.grades) ? data.grades : []);
+            refreshStudentResults();
         })
-        .catch(err => console.error('Failed to load student list:', err));
+        .catch((err) => console.error('Failed to load student list:', err));
 }
 
 // ─────────────────────────────────────────────
@@ -392,7 +461,7 @@ function fetchStudentInfo(studentId) {
     const resultDiv = document.getElementById('scan-result');
     if (resultDiv) resultDiv.innerHTML = '<div class="alert alert-info">Loading student information...</div>';
 
-    fetch(`/api/student/${studentId}`, {
+    fetch(`/api/student/${encodeURIComponent(studentId)}`, {
         headers: { 'X-CSRFToken': getCSRFToken() },
     })
         .then(res => res.json())
@@ -418,7 +487,8 @@ function fetchStudentInfo(studentId) {
 // Check if student has a record for today
 // ─────────────────────────────────────────────
 function checkTodayRecord(studentId) {
-    fetch(`/api/today-record/${studentId}`, {
+    const date = encodeURIComponent(getPaymentDate());
+    fetch(`/api/today-record/${encodeURIComponent(studentId)}?date=${date}`, {
         headers: { 'X-CSRFToken': getCSRFToken() },
     })
         .then(res => res.json())
@@ -439,6 +509,8 @@ function checkTodayRecord(studentId) {
 function showConfirmationModal(student) {
     document.getElementById('student-name').textContent = student.name;
     document.getElementById('student-id').textContent = student.id;
+    const dateLabel = document.getElementById('confirm-payment-date');
+    if (dateLabel) dateLabel.textContent = getPaymentDate();
     
     let infoText = '';
     if (student.gender) {
@@ -475,27 +547,38 @@ function showConfirmationModal(student) {
             div.style.backgroundColor = '#e7f1ff';
         }
 
+        const initialQuantity = isDefault ? 1 : 0;
         const badgeHtml = isDefault ? '<span class="badge bg-info mt-2">Default</span>' : '';
         div.innerHTML = `
             <input class="form-check-input course-check"
                    type="checkbox"
                    value="${course.id}"
                    data-fee="${course.fee}"
+                   data-quantity="${initialQuantity}"
                    id="course-${course.id}"
                    style="display:none;"
-                   ${isDefault ? 'checked' : ''}>
+                   ${initialQuantity ? 'checked' : ''}>
             <h6 class="mb-2" style="font-weight:600;">${course.name}</h6>
             <p class="mb-0" style="font-size:18px;font-weight:bold;color:#0d6efd;">៛${course.fee.toFixed(0)}</p>
             <small style="color:#6c757d;">/day</small>
+            <div class="d-flex justify-content-center align-items-center gap-2 mt-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm course-quantity-btn" data-change="-1" aria-label="Remove one hour">−</button>
+                <span class="course-quantity fw-bold">${initialQuantity}</span>
+                <button type="button" class="btn btn-outline-primary btn-sm course-quantity-btn" data-change="1" aria-label="Add one hour">+</button>
+            </div>
             ${badgeHtml}
         `;
 
         div.addEventListener('click', function(e) {
-            if (e.target.tagName !== 'INPUT') {
-                const checkbox = this.querySelector('.course-check');
-                checkbox.checked = !checkbox.checked;
-                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+            const checkbox = this.querySelector('.course-check');
+            const quantityEl = this.querySelector('.course-quantity');
+            const changeButton = e.target.closest('.course-quantity-btn');
+            const change = changeButton ? parseInt(changeButton.dataset.change, 10) : 1;
+            const quantity = Math.max(0, parseInt(checkbox.dataset.quantity, 10) + change);
+            checkbox.dataset.quantity = quantity;
+            checkbox.checked = quantity > 0;
+            quantityEl.textContent = quantity;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         // Highlight on hover/selection
@@ -544,9 +627,17 @@ function showConfirmationModal(student) {
 function updateTotal() {
     let total = 0;
     document.querySelectorAll('.course-check:checked').forEach(cb => {
-        total += parseFloat(cb.dataset.fee);
+        total += parseFloat(cb.dataset.fee) * parseInt(cb.dataset.quantity, 10);
     });
     document.getElementById('total-display').textContent = total.toFixed(0);
+}
+
+function getCourseQuantities(selector) {
+    const quantities = {};
+    document.querySelectorAll(`${selector}:checked`).forEach((cb) => {
+        quantities[cb.value] = parseInt(cb.dataset.quantity, 10);
+    });
+    return quantities;
 }
 
 // ─────────────────────────────────────────────
@@ -567,12 +658,15 @@ function showTodayRecordModal(record, student) {
     newCoursesContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))';
     newCoursesContainer.style.gap = '12px';
 
-    let recordCourseIds = record.courses.map(c => c.id);
+    const recordCourseQuantities = Object.fromEntries(
+        record.courses.map(c => [c.id, c.quantity || 1])
+    );
 
     student.courses.forEach(course => {
         const div = document.createElement('div');
         div.className = 'course-card';
-        const isChecked = recordCourseIds.includes(course.id);
+        const initialQuantity = recordCourseQuantities[course.id] || 0;
+        const isChecked = initialQuantity > 0;
         
         div.style.cssText = `
             padding: 12px;
@@ -595,21 +689,31 @@ function showTodayRecordModal(record, student) {
                    type="checkbox"
                    value="${course.id}"
                    data-fee="${course.fee}"
+                   data-quantity="${initialQuantity}"
                    id="today-record-course-${course.id}"
                    style="display:none;"
                    ${isChecked ? 'checked' : ''}>
             <h6 class="mb-2" style="font-weight:600;">${course.name}</h6>
             <p class="mb-0" style="font-size:18px;font-weight:bold;color:#0d6efd;">៛${course.fee.toFixed(0)}</p>
             <small style="color:#6c757d;">/day</small>
+            <div class="d-flex justify-content-center align-items-center gap-2 mt-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm today-record-quantity-btn" data-change="-1" aria-label="Remove one hour">−</button>
+                <span class="today-record-quantity fw-bold">${initialQuantity}</span>
+                <button type="button" class="btn btn-outline-primary btn-sm today-record-quantity-btn" data-change="1" aria-label="Add one hour">+</button>
+            </div>
             ${badgeHtml}
         `;
 
         div.addEventListener('click', function(e) {
-            if (e.target.tagName !== 'INPUT') {
-                const checkbox = this.querySelector('.today-record-course-check');
-                checkbox.checked = !checkbox.checked;
-                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            }
+            const checkbox = this.querySelector('.today-record-course-check');
+            const quantityEl = this.querySelector('.today-record-quantity');
+            const changeButton = e.target.closest('.today-record-quantity-btn');
+            const change = changeButton ? parseInt(changeButton.dataset.change, 10) : 1;
+            const quantity = Math.max(0, parseInt(checkbox.dataset.quantity, 10) + change);
+            checkbox.dataset.quantity = quantity;
+            checkbox.checked = quantity > 0;
+            quantityEl.textContent = quantity;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         newCoursesContainer.appendChild(div);
@@ -647,7 +751,7 @@ function showTodayRecordModal(record, student) {
 function updateTodayRecordTotal() {
     let total = 0;
     document.querySelectorAll('.today-record-course-check:checked').forEach(cb => {
-        total += parseFloat(cb.dataset.fee);
+        total += parseFloat(cb.dataset.fee) * parseInt(cb.dataset.quantity, 10);
     });
     document.getElementById('today-record-total-display').textContent = total.toFixed(0);
 }
@@ -656,10 +760,8 @@ function updateTodayRecordTotal() {
 // Payment confirmation
 // ─────────────────────────────────────────────
 document.getElementById('confirm-btn').addEventListener('click', function () {
-    const selectedCourses = [];
-    document.querySelectorAll('.course-check:checked').forEach(cb => {
-        selectedCourses.push(parseInt(cb.value));
-    });
+    const courseQuantities = getCourseQuantities('.course-check');
+    const selectedCourses = Object.keys(courseQuantities).map(Number);
 
     if (selectedCourses.length === 0) {
         alert('សូមជ្រើសរើសយ៉ាងតិច១វគ្គសិក្សា។');
@@ -679,7 +781,9 @@ document.getElementById('confirm-btn').addEventListener('click', function () {
         body: JSON.stringify({
             student_id: currentStudentData.id,
             course_ids: selectedCourses,
+            course_quantities: courseQuantities,
             tabs: tabs,
+            date: getPaymentDate(),
         }),
     })
         .then(res => res.json())
@@ -687,6 +791,7 @@ document.getElementById('confirm-btn').addEventListener('click', function () {
             if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
                 modal.hide();
+                loadStudentList();
 
                 const status = data.is_paid ? 'Paid' : 'Tabs';
                 showToast(`Payment recorded! ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})`);
@@ -722,10 +827,8 @@ document.getElementById('confirm-btn').addEventListener('click', function () {
 // Update today's record
 // ─────────────────────────────────────────────
 document.getElementById('today-record-update-btn').addEventListener('click', function () {
-    const selectedCourses = [];
-    document.querySelectorAll('.today-record-course-check:checked').forEach(cb => {
-        selectedCourses.push(parseInt(cb.value));
-    });
+    const courseQuantities = getCourseQuantities('.today-record-course-check');
+    const selectedCourses = Object.keys(courseQuantities).map(Number);
 
     if (selectedCourses.length === 0) {
         alert('សូមជ្រើសរើសយ៉ាងតិច១វគ្គសិក្សា។');
@@ -746,7 +849,9 @@ document.getElementById('today-record-update-btn').addEventListener('click', fun
         },
         body: JSON.stringify({
             course_ids: selectedCourses,
+            course_quantities: courseQuantities,
             tabs: tabs,
+            date: getPaymentDate(),
         }),
     })
         .then(res => res.json())
@@ -754,6 +859,7 @@ document.getElementById('today-record-update-btn').addEventListener('click', fun
             if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('todayRecordModal'));
                 modal.hide();
+                loadStudentList();
 
                 const status = data.is_paid ? 'Paid' : 'Tabs';
                 showToast(`កំណត់ត្រាបង់ប្រាក់បានកែប្រែ! ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})`);
@@ -795,44 +901,10 @@ document.getElementById('confirmModal').addEventListener('hidden.bs.modal', func
     ) {
         startScanner();
         const btn = document.getElementById('start-scan-btn');
-        btn.innerHTML = '<i class="bi bi-camera-video-fill"></i> Scanner Running...';
+        btn.innerHTML = '<i class="bi bi-camera-video-fill"></i> ម៉ាស៊ីនស្កេនកំពុងដំណើរការ...';
         btn.classList.replace('btn-primary', 'btn-success');
     }
-
-    // Reset the student search panel after modal closes
-    const searchInput  = document.getElementById('student-search');
-    const hiddenInput  = document.getElementById('selected-student-id');
-    const proceedBtn   = document.getElementById('select-student-btn');
-    const resultsList  = document.getElementById('student-results');
-    if (searchInput)  searchInput.value = '';
-    if (hiddenInput)  hiddenInput.value = '';
-    if (proceedBtn)   proceedBtn.disabled = true;
-    if (resultsList)  resultsList.classList.add('d-none');
-});
-
-// ─────────────────────────────────────────────
-// Modal events
-// ─────────────────────────────────────────────
-document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function () {
-    if (
-        document.getElementById('payment-status').style.display === 'none' &&
-        isScanTabActive()
-    ) {
-        startScanner();
-        const btn = document.getElementById('start-scan-btn');
-        btn.innerHTML = '<i class="bi bi-camera-video-fill"></i> Scanner Running...';
-        btn.classList.replace('btn-primary', 'btn-success');
-    }
-
-    // Reset the student search panel after modal closes
-    const searchInput  = document.getElementById('student-search');
-    const hiddenInput  = document.getElementById('selected-student-id');
-    const proceedBtn   = document.getElementById('select-student-btn');
-    const resultsList  = document.getElementById('student-results');
-    if (searchInput)  searchInput.value = '';
-    if (hiddenInput)  hiddenInput.value = '';
-    if (proceedBtn)   proceedBtn.disabled = true;
-    if (resultsList)  resultsList.classList.add('d-none');
+    resetStudentCardPanel();
 });
 
 document.getElementById('select-tab').addEventListener('shown.bs.tab', function () {
@@ -847,19 +919,10 @@ document.getElementById('todayRecordModal').addEventListener('hidden.bs.modal', 
     ) {
         startScanner();
         const btn = document.getElementById('start-scan-btn');
-        btn.innerHTML = '<i class="bi bi-camera-video-fill"></i> Scanner Running...';
+        btn.innerHTML = '<i class="bi bi-camera-video-fill"></i> ម៉ាស៊ីនស្កេនកំពុងដំណើរការ...';
         btn.classList.replace('btn-primary', 'btn-success');
     }
-
-    // Reset the student search panel after modal closes
-    const searchInput  = document.getElementById('student-search');
-    const hiddenInput  = document.getElementById('selected-student-id');
-    const proceedBtn   = document.getElementById('select-student-btn');
-    const resultsList  = document.getElementById('student-results');
-    if (searchInput)  searchInput.value = '';
-    if (hiddenInput)  hiddenInput.value = '';
-    if (proceedBtn)   proceedBtn.disabled = true;
-    if (resultsList)  resultsList.classList.add('d-none');
+    resetStudentCardPanel();
 });
 
 // ─────────────────────────────────────────────
@@ -868,7 +931,11 @@ document.getElementById('todayRecordModal').addEventListener('hidden.bs.modal', 
 function showError(message) {
     const resultDiv = document.getElementById('scan-result');
     if (resultDiv) {
-        resultDiv.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+        resultDiv.replaceChildren();
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger';
+        alert.textContent = message;
+        resultDiv.appendChild(alert);
     }
     if (isScanTabActive()) {
         startScanner();
@@ -892,8 +959,9 @@ function getCSRFToken() {
 // Init
 // ─────────────────────────────────────────────
 function setupPage() {
+    setupPaymentDate();
     setupScannerButton();
-    setupStudentDropdown();
+    setupStudentCards();
     loadStudentList();
 }
 

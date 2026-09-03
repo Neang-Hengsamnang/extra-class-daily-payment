@@ -15,36 +15,61 @@
     margin: auto;
   }
 
-  /* Searchable dropdown */
-  #student-search-wrapper {
-    position: relative;
+  #student-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
   }
-  #student-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1050;
-    max-height: 280px;
-    overflow-y: auto;
+  .student-card {
+    min-height: 92px;
+    padding: 0.85rem;
     border: 1px solid #dee2e6;
-    border-radius: 0 0 0.375rem 0.375rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 0.5rem;
     background: #fff;
+    color: inherit;
+    text-align: left;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
-  #student-results .list-group-item-action:hover {
-    background-color: #f0f4ff;
+  .student-card.is-checked-in {
+    border-color: #198754;
+    background-color: #eaf7ef;
+    color: #146c43;
   }
-  #student-results mark {
-    background-color: #fff3cd;
-    border-radius: 2px;
+  .student-card.is-checked-in .student-card-status {
+    color: #198754;
+    font-weight: 600;
+  }
+  .student-card:hover,
+  .student-card:focus-visible {
+    border-color: #0d6efd;
+    box-shadow: 0 0.25rem 0.75rem rgba(13, 110, 253, 0.2);
+    transform: translateY(-1px);
+  }
+  .student-card.is-checked-in:hover,
+  .student-card.is-checked-in:focus-visible {
+    border-color: #198754;
+    box-shadow: 0 0.25rem 0.75rem rgba(25, 135, 84, 0.2);
+  }
+  .student-card:active {
+    transform: translateY(0);
+  }
+  .scan-page .card:hover {
+    transform: none;
   }
 </style>
 {% endblock %}
 {% block content %}
-<div class="row">
+<div class="row scan-page">
     <div class="col-md-8 mx-auto">
         <h2 class="mb-3">កត់ត្រាការបង់ប្រាក់</h2>
+
+        <div class="card mb-3">
+            <div class="card-body py-3">
+                <label for="payment-date" class="form-label fw-semibold mb-1">កាលបរិច្ឆេទកត់ត្រា</label>
+                <input type="date" id="payment-date" class="form-control" required>
+                <div id="payment-date-hint" class="form-text">កំណត់ត្រាថ្មី និងការកែប្រែនឹងប្រើថ្ងៃនេះ។</div>
+            </div>
+        </div>
 
         <ul class="nav nav-tabs mb-3" id="inputTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -78,35 +103,14 @@
             <div class="tab-pane fade" id="select-panel" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
-                        <label class="form-label fw-semibold">ស្វែងរកសិស្ស:</label>
-
-                        <div id="student-search-wrapper" class="mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input
-                                    type="text"
-                                    id="student-search"
-                                    class="form-control form-control-lg"
-                                    placeholder="វាយបញ្ចូលឈ្មោះឬលេខសម្គាល់..."
-                                    autocomplete="off"
-                                    autocorrect="off"
-                                    autocapitalize="off"
-                                    spellcheck="false"
-                                >
-                            </div>
-                            <!-- Results dropdown -->
-                            <ul id="student-results" class="list-group d-none"></ul>
+                        <div class="mb-3">
+                            <label for="grade-filter" class="form-label fw-semibold">ថ្នាក់</label>
+                            <select id="grade-filter" class="form-select form-select-lg" aria-label="Filter by grade">
+                                <option value="">គ្រប់ថ្នាក់</option>
+                            </select>
                         </div>
-
-                        <!-- Hidden field holds the selected student ID -->
-                        <input type="hidden" id="selected-student-id">
-                        <small id="selected-student-name" class="text-success fw-semibold"></small>
-
-                        <div class="mt-3">
-                            <button id="select-student-btn" class="btn btn-success btn-lg w-100" type="button" disabled>
-                                <i class="bi bi-check-circle"></i> បញ្ចូលសិស្សដែលបានជ្រើស
-                            </button>
-                        </div>
+                        <div id="student-filter-status" class="small text-muted mb-2"></div>
+                        <div id="student-cards" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
@@ -128,6 +132,7 @@
             <h4 id="student-name" class="mb-1" style="display: inline;"></h4> •
             <small class="text-muted">ID: <span id="student-id"></span></small> •
             <small class="text-muted" id="student-info"></small>
+            <div class="small text-muted mt-1">កាលបរិច្ឆេទ: <span id="confirm-payment-date"></span></div>
         </div>
 
         <div class="card bg-light mb-3">
@@ -180,7 +185,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title">💾 ព័ត៌មានបង់ប្រាក់ថ្ងៃនេះ</h5>
+        <h5 class="modal-title">ព័ត៌មានបង់ប្រាក់ដែលមានរួច</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">

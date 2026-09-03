@@ -191,7 +191,9 @@ def daily_report():
     for s in active_students:
         payment = paid_dict.get(s.id)
         if payment:
-            courses_taken = ', '.join([pc.course.name for pc in payment.courses])
+            courses_taken = ', '.join(
+                f'{pc.course.name} ({pc.quantity}h)' for pc in payment.courses
+            )
             amount = f"៛{payment.total_amount:,.0f} {'(Paid)' if payment.is_paid else '(Tabs)'}"
             status = 'Present'
         else:
@@ -261,7 +263,9 @@ def monthly_report():
     for p in payments:
         for pc in p.courses:
             cname = pc.course.name
-            course_revenue[cname] = course_revenue.get(cname, 0) + pc.course.daily_fee
+            course_revenue[cname] = (
+                course_revenue.get(cname, 0) + pc.course.daily_fee * pc.quantity
+            )
 
     # Paid vs Tabs pie
     total_paid = sum(p.total_amount for p in payments if p.is_paid)

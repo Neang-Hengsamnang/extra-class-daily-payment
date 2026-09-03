@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from extensions import db
 from models import Student, Course, Payment, PaymentCourse
-from datetime import date
+from datetime import date, datetime
 from export_google_sheets import create_monthly_payment_sheet
 from dotenv import load_dotenv
 
@@ -13,14 +13,41 @@ load_dotenv()
 api_bp = Blueprint('api', __name__)
 
 
+def parse_iso_date(value):
+    """Parse YYYY-MM-DD. Empty/None means today. Invalid values return None."""
+    if value in (None, ''):
+        return date.today()
+    try:
+        return datetime.strptime(str(value).strip(), '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
+
+
 @api_bp.route('/students')
 @login_required
 def get_student_list():
-    """Return all active students for the Select Student dropdown."""
-    students = Student.query.filter_by(is_active=True).order_by(Student.full_name).all()
+    """Return active students and their check-in status for the selected date."""
+    target_date = parse_iso_date(request.args.get('date'))
+    if target_date is None:
+        return jsonify({'error': 'Invalid date. Use YYYY-MM-DD.'}), 400
+
+    students = Student.query.filter_by(is_active=True).order_by(
+        Student.grade_level, Student.full_name
+    ).all()
+    checked_in_ids = {
+        payment.student_id
+        for payment in Payment.query.filter_by(date=target_date).all()
+    }
+    grades = sorted({s.grade_level for s in students if s.grade_level})
     return jsonify({
+        'grades': grades,
         'students': [
-            {'id': s.id, 'name': s.full_name}
+            {
+                'id': s.id,
+                'name': s.full_name,
+                'grade_level': s.grade_level or '',
+                'checked_in': s.id in checked_in_ids,
+            }
             for s in students
         ]
     })
@@ -60,14 +87,18 @@ def get_student_info(student_id):
 @api_bp.route('/today-record/<string:student_id>')
 @login_required
 def get_today_record(student_id):
-    """Check if student has a record for today and return it for modification."""
+    """Check if student has a record for the selected date and return it for modification."""
     student = Student.query.get(student_id)
     if not student:
         return jsonify({'error': 'Student not found'}), 404
 
+    target_date = parse_iso_date(request.args.get('date'))
+    if target_date is None:
+        return jsonify({'error': 'Invalid date. Use YYYY-MM-DD.'}), 400
+
     today_record = Payment.query.filter_by(
         student_id=student_id,
-        date=date.today()
+        date=target_date
     ).first()
 
     if not today_record:
@@ -77,7 +108,8 @@ def get_today_record(student_id):
         {
             'id': pc.course_id,
             'name': pc.course.name,
-            'fee': pc.course.daily_fee
+            'fee': pc.course.daily_fee,
+            'quantity': pc.quantity
         }
         for pc in today_record.courses
     ]
@@ -104,7 +136,9 @@ def get_unpaid_tabs():
     
     tabs_data = []
     for p in unpaid_payments:
-        courses_list = [pc.course.name for pc in p.courses]
+        courses_list = [
+            f'{pc.course.name} ({pc.quantity}h)' for pc in p.courses
+        ]
         tabs_data.append({
             'id': p.id,
             'student_id': p.student.id,
@@ -125,27 +159,48 @@ def get_unpaid_tabs():
 @api_bp.route('/record_payment', methods=['POST'])
 @login_required
 def record_payment():
-    data = request.get_json()
+    data = request.get_json() or {}
     student_id = data.get('student_id')
     course_ids = data.get('course_ids', [])
+    course_quantities = data.get('course_quantities', {})
     is_paid = not data.get('tabs', False)
+    target_date = parse_iso_date(data.get('date'))
 
     if not student_id or not course_ids:
         return jsonify({'error': 'Missing data'}), 400
+
+    if target_date is None:
+        return jsonify({'error': 'Invalid date. Use YYYY-MM-DD.'}), 400
 
     student = Student.query.get(student_id)
     if not student or not student.is_active:
         return jsonify({'error': 'Invalid student'}), 400
 
-    courses = Course.query.filter(Course.id.in_(course_ids)).all()
-    if len(courses) != len(course_ids):
+    existing = Payment.query.filter_by(student_id=student.id, date=target_date).first()
+    if existing:
+        return jsonify({
+            'error': 'A record already exists for this student on that date. Update it instead.'
+        }), 409
+
+    try:
+        requested_course_ids = {int(course_id) for course_id in course_ids}
+        quantities = {int(course_id): int(quantity) for course_id, quantity in course_quantities.items()}
+    except (AttributeError, TypeError, ValueError):
+        return jsonify({'error': 'Invalid course quantities'}), 400
+    if set(quantities) != requested_course_ids:
+        return jsonify({'error': 'Invalid course selection'}), 400
+    if any(quantity < 1 for quantity in quantities.values()):
+        return jsonify({'error': 'Course quantity must be at least one'}), 400
+
+    courses = Course.query.filter(Course.id.in_(quantities)).all()
+    if len(courses) != len(quantities):
         return jsonify({'error': 'Invalid course selection'}), 400
 
-    total = sum(c.daily_fee for c in courses)
+    total = sum(c.daily_fee * quantities[c.id] for c in courses)
 
     payment = Payment(
         student_id=student.id,
-        date=date.today(),
+        date=target_date,
         is_paid=is_paid,
         total_amount=total,
         recorded_by=current_user.id
@@ -154,7 +209,9 @@ def record_payment():
     db.session.flush()
 
     for c in courses:
-        pc = PaymentCourse(payment_id=payment.id, course_id=c.id)
+        pc = PaymentCourse(
+            payment_id=payment.id, course_id=c.id, quantity=quantities[c.id]
+        )
         db.session.add(pc)
 
     db.session.commit()
@@ -170,25 +227,40 @@ def record_payment():
 @login_required
 def update_payment(payment_id):
     """Update an existing payment record."""
-    data = request.get_json()
+    data = request.get_json() or {}
     course_ids = data.get('course_ids', [])
+    course_quantities = data.get('course_quantities', {})
     is_paid = not data.get('tabs', False)
 
     payment = Payment.query.get(payment_id)
     if not payment:
         return jsonify({'error': 'Payment record not found'}), 404
 
-    if payment.date != date.today():
-        return jsonify({'error': 'Can only modify today\'s records'}), 400
+    target_date = parse_iso_date(data.get('date'))
+    if target_date is None:
+        return jsonify({'error': 'Invalid date. Use YYYY-MM-DD.'}), 400
+
+    if payment.date != target_date:
+        return jsonify({'error': 'Can only modify the record for the selected date'}), 400
 
     if not course_ids:
         return jsonify({'error': 'Must select at least one course'}), 400
 
-    courses = Course.query.filter(Course.id.in_(course_ids)).all()
-    if len(courses) != len(course_ids):
+    try:
+        requested_course_ids = {int(course_id) for course_id in course_ids}
+        quantities = {int(course_id): int(quantity) for course_id, quantity in course_quantities.items()}
+    except (AttributeError, TypeError, ValueError):
+        return jsonify({'error': 'Invalid course quantities'}), 400
+    if set(quantities) != requested_course_ids:
+        return jsonify({'error': 'Invalid course selection'}), 400
+    if any(quantity < 1 for quantity in quantities.values()):
+        return jsonify({'error': 'Course quantity must be at least one'}), 400
+
+    courses = Course.query.filter(Course.id.in_(quantities)).all()
+    if len(courses) != len(quantities):
         return jsonify({'error': 'Invalid course selection'}), 400
 
-    total = sum(c.daily_fee for c in courses)
+    total = sum(c.daily_fee * quantities[c.id] for c in courses)
 
     # Delete old course associations
     PaymentCourse.query.filter_by(payment_id=payment_id).delete()
@@ -199,7 +271,9 @@ def update_payment(payment_id):
 
     # Add new course associations
     for c in courses:
-        pc = PaymentCourse(payment_id=payment_id, course_id=c.id)
+        pc = PaymentCourse(
+            payment_id=payment_id, course_id=c.id, quantity=quantities[c.id]
+        )
         db.session.add(pc)
 
     db.session.commit()

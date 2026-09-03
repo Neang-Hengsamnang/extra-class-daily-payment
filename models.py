@@ -45,4 +45,5 @@ class Payment(db.Model):
 class PaymentCourse(db.Model):
     payment_id = db.Column(db.Integer, db.ForeignKey('payment.id'), primary_key=True)
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), primary_key=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
     course = db.relationship('Course')
