@@ -45,6 +45,7 @@ def get_student_list():
             {
                 'id': s.id,
                 'name': s.full_name,
+                'gender': s.gender or '',
                 'grade_level': s.grade_level or '',
                 'checked_in': s.id in checked_in_ids,
             }

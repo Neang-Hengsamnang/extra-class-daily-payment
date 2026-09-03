@@ -419,15 +419,18 @@ function renderResults(matches) {
         nameEl.className = 'd-block fw-semibold';
         nameEl.textContent = student.name;
 
-        const gradeEl = document.createElement('small');
-        gradeEl.className = 'text-muted d-block mt-2';
-        gradeEl.textContent = student.grade_level || 'Grade not set';
+        const detailsEl = document.createElement('small');
+        detailsEl.className = 'text-muted d-block mt-2';
+        detailsEl.textContent = [
+            student.gender || 'Gender not set',
+            student.grade_level || 'Grade not set',
+        ].join(' • ');
 
         const statusEl = document.createElement('small');
         statusEl.className = 'student-card-status d-block mt-2';
         statusEl.textContent = student.checked_in ? 'កត់ត្រារួច' : 'មិនទាន់កត់ត្រា';
 
-        card.append(nameEl, gradeEl, statusEl);
+        card.append(nameEl, detailsEl, statusEl);
         card.addEventListener('click', () => {
             clearStudentSelection();
             scanState.selectedStudentId = student.id;
