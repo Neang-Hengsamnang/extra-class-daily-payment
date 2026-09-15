@@ -1,8 +1,43 @@
 import os
 import ssl
+import subprocess
+import sys
 from flask import Flask
 from extensions import db, login_manager, csrf
 from sqlalchemy import inspect, text
+
+def ensure_ssl_certificates(basedir):
+    """Generate SSL certificates on first startup when they are missing."""
+    ssl_dir = os.path.join(basedir, 'ssl')
+    ssl_cert = os.path.join(ssl_dir, 'cert.pem')
+    ssl_key = os.path.join(ssl_dir, 'key.pem')
+
+    if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
+        return ssl_cert, ssl_key
+
+    print("SSL certificates not found - generating them now")
+    generate_ssl_script = os.path.join(basedir, 'generate_ssl.py')
+    generator_env = os.environ.copy()
+    generator_env['PYTHONIOENCODING'] = 'utf-8'
+    generator_args = [sys.executable, generate_ssl_script]
+    if not sys.stdin.isatty():
+        generator_args.append('--non-interactive')
+    result = subprocess.run(
+        generator_args,
+        cwd=basedir,
+        env=generator_env,
+        check=False,
+    )
+
+    if result.returncode != 0 or not (
+        os.path.exists(ssl_cert) and os.path.exists(ssl_key)
+    ):
+        raise RuntimeError(
+            "SSL certificate generation failed. "
+            "Install OpenSSL and run generate_ssl.py manually for details."
+        )
+
+    return ssl_cert, ssl_key
 
 def create_app():
     app = Flask(__name__)
@@ -12,21 +47,14 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['REMEMBER_COOKIE_DURATION'] = 365 * 24 * 60 * 60  # 1 year
 
-    # HTTPS/SSL Configuration (only if SSL certificates exist)
-    ssl_dir = os.path.join(basedir, 'ssl')
-    ssl_cert = os.path.join(ssl_dir, 'cert.pem')
-    ssl_key = os.path.join(ssl_dir, 'key.pem')
+    # HTTPS/SSL Configuration
+    ssl_cert, ssl_key = ensure_ssl_certificates(basedir)
     
-    if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
-        app.config['SESSION_COOKIE_SECURE'] = True
-        app.config['SESSION_COOKIE_HTTPONLY'] = True
-        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-        app.config['PREFERRED_URL_SCHEME'] = 'https'
-        print("✓ SSL certificates found - HTTPS mode enabled")
-    else:
-        app.config['PREFERRED_URL_SCHEME'] = 'http'
-        print("ℹ SSL certificates not found - running in HTTP mode")
-        print("  Run 'python generate_ssl.py' to create certificates for HTTPS")
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+    print("SSL certificates found - HTTPS mode enabled")
 
     # Initialize extensions with app
     db.init_app(app)
@@ -98,9 +126,10 @@ def create_app():
 
     return app
 
+# WSGI entry point for Gunicorn, uWSGI, and other production servers.
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
-    
     # Check if SSL certificates exist
     ssl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ssl')
     ssl_cert = os.path.join(ssl_dir, 'cert.pem')

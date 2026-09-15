@@ -551,7 +551,7 @@ function showConfirmationModal(student) {
         }
 
         const initialQuantity = isDefault ? 1 : 0;
-        const badgeHtml = isDefault ? '<span class="badge bg-info mt-2">Default</span>' : '';
+        const badgeHtml = isDefault ? '<span class="badge bg-info mt-2">ជាគោល</span>' : '';
         div.innerHTML = `
             <input class="form-check-input course-check"
                    type="checkbox"
@@ -561,15 +561,14 @@ function showConfirmationModal(student) {
                    id="course-${course.id}"
                    style="display:none;"
                    ${initialQuantity ? 'checked' : ''}>
-            <h6 class="mb-2" style="font-weight:600;">${course.name}</h6>
-            <p class="mb-0" style="font-size:18px;font-weight:bold;color:#0d6efd;">៛${course.fee.toFixed(0)}</p>
-            <small style="color:#6c757d;">/day</small>
+            <h6 class="mb-2" style="font-weight:600;">${course.name} ${badgeHtml}</h6>
+            <p class="mb-0" style="font-size:18px;font-weight:bold;color:#0d6efd;">៛${course.fee.toLocaleString('en-US', { maximumFractionDigits: 0 })} <small style="color:#6c757d;">/day</small></p>
             <div class="d-flex justify-content-center align-items-center gap-2 mt-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm course-quantity-btn" data-change="-1" aria-label="Remove one hour">−</button>
                 <span class="course-quantity fw-bold">${initialQuantity}</span>
                 <button type="button" class="btn btn-outline-primary btn-sm course-quantity-btn" data-change="1" aria-label="Add one hour">+</button>
             </div>
-            ${badgeHtml}
+            
         `;
 
         div.addEventListener('click', function(e) {
@@ -632,7 +631,7 @@ function updateTotal() {
     document.querySelectorAll('.course-check:checked').forEach(cb => {
         total += parseFloat(cb.dataset.fee) * parseInt(cb.dataset.quantity, 10);
     });
-    document.getElementById('total-display').textContent = total.toFixed(0);
+    document.getElementById('total-display').textContent = total.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
 function getCourseQuantities(selector) {
@@ -686,7 +685,7 @@ function showTodayRecordModal(record, student) {
             div.style.backgroundColor = '#f0fdf4';
         }
 
-        const badgeHtml = isChecked ? '<span class="badge bg-success mt-2">Previous</span>' : '';
+        const badgeHtml = isChecked ? '<span class="badge bg-success mt-2">បង់រួច</span>' : '';
         div.innerHTML = `
             <input class="form-check-input today-record-course-check"
                    type="checkbox"
@@ -696,15 +695,14 @@ function showTodayRecordModal(record, student) {
                    id="today-record-course-${course.id}"
                    style="display:none;"
                    ${isChecked ? 'checked' : ''}>
-            <h6 class="mb-2" style="font-weight:600;">${course.name}</h6>
-            <p class="mb-0" style="font-size:18px;font-weight:bold;color:#0d6efd;">៛${course.fee.toFixed(0)}</p>
-            <small style="color:#6c757d;">/day</small>
+            <h6 class="mb-2" style="font-weight:600;">${course.name} ${badgeHtml}</h6>
+            <p class="mb-0" style="font-size:18px;font-weight:bold;color:#0d6efd;">៛${course.fee.toLocaleString('en-US', { maximumFractionDigits: 0 })} <small style="color:#6c757d;">/day</small></p>
             <div class="d-flex justify-content-center align-items-center gap-2 mt-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm today-record-quantity-btn" data-change="-1" aria-label="Remove one hour">−</button>
                 <span class="today-record-quantity fw-bold">${initialQuantity}</span>
                 <button type="button" class="btn btn-outline-primary btn-sm today-record-quantity-btn" data-change="1" aria-label="Add one hour">+</button>
             </div>
-            ${badgeHtml}
+            
         `;
 
         div.addEventListener('click', function(e) {
@@ -756,7 +754,7 @@ function updateTodayRecordTotal() {
     document.querySelectorAll('.today-record-course-check:checked').forEach(cb => {
         total += parseFloat(cb.dataset.fee) * parseInt(cb.dataset.quantity, 10);
     });
-    document.getElementById('today-record-total-display').textContent = total.toFixed(0);
+    document.getElementById('today-record-total-display').textContent = total.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
 
 // ─────────────────────────────────────────────
@@ -797,13 +795,13 @@ document.getElementById('confirm-btn').addEventListener('click', function () {
                 loadStudentList();
 
                 const status = data.is_paid ? 'Paid' : 'Tabs';
-                showToast(`Payment recorded! ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})`);
+                showToast(`Payment recorded! ${currentStudentData.name} - ៛${data.total.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${status})`);
 
                 setTimeout(() => {
                     const resultDiv = document.getElementById('scan-result');
                     if (resultDiv) {
                         resultDiv.innerHTML =
-                            `<div class="alert alert-success">Last: ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})</div>`;
+                            `<div class="alert alert-success">Last: ${currentStudentData.name} - ៛${data.total.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${status})</div>`;
                     }
                     if (isScanTabActive()) {
                         startScanner();
@@ -865,13 +863,13 @@ document.getElementById('today-record-update-btn').addEventListener('click', fun
                 loadStudentList();
 
                 const status = data.is_paid ? 'Paid' : 'Tabs';
-                showToast(`កំណត់ត្រាបង់ប្រាក់បានកែប្រែ! ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})`);
+                showToast(`កំណត់ត្រាបង់ប្រាក់បានកែប្រែ! ${currentStudentData.name} - ៛${data.total.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${status})`);
 
                 setTimeout(() => {
                     const resultDiv = document.getElementById('scan-result');
                     if (resultDiv) {
                         resultDiv.innerHTML =
-                            `<div class="alert alert-success">Last: ${currentStudentData.name} - ៛${data.total.toFixed(0)} (${status})</div>`;
+                            `<div class="alert alert-success">Last: ${currentStudentData.name} - ៛${data.total.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${status})</div>`;
                     }
                     if (isScanTabActive()) {
                         startScanner();

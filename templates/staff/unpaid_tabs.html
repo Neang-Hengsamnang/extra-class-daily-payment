@@ -7,7 +7,7 @@
         <p class="text-muted">បញ្ជីរាយនាមសិស្សទាំងអស់ដែលជំពាក់</p>
     </div>
     <div class="alert alert-warning mb-0" role="alert">
-        <strong>ទឹកប្រាក់ជំពាក់សរុប:</strong> ៛{{ "%.2f"|format(total_outstanding) }}
+        <strong>ទឹកប្រាក់ជំពាក់សរុប:</strong> ៛{{ "{:,.0f}".format(total_outstanding) }}
     </div>
 </div>
 
@@ -49,7 +49,7 @@
                         {% endfor %}
                     </td>
                     <td class="text-end">
-                        <strong class="text-danger">៛{{ "%.2f"|format(p.total_amount) }}</strong>
+                        <strong class="text-danger">៛{{ "{:,.0f}".format(p.total_amount) }}</strong>
                     </td>
                     <td>
                         <small class="text-muted">{{ p.recorded_by_user.username if p.recorded_by_user else 'Unknown' }}</small>
@@ -58,7 +58,7 @@
                         <div class="btn-group btn-group-sm" role="group">
                             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#payOffModal" 
                                     data-payment-id="{{ p.id }}" data-student-name="{{ p.student.full_name }}" 
-                                    data-amount="{{ "%.2f"|format(p.total_amount) }}" title="Pay Off Tab">
+                                    data-amount="{{ "{:,.0f}".format(p.total_amount) }}" title="Pay Off Tab">
                                 <i class="bi bi-cash-coin"></i> បង់សង
                             </button>
                         </div>

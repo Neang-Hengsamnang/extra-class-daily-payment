@@ -56,9 +56,9 @@
 <div class="card mt-3">
     <div class="card-header">ទិន្នន័យសង្ខេប</div>
     <div class="card-body">
-        <p>សរុបប្រាក់ចំណូល: ៛{{ "%.2f"|format(total_revenue) }}</p>
-        <p>សរុបប្រាក់ដែលបានទទួល: ៛{{ "%.2f"|format(total_paid) }}</p>
-        <p>សរុបប្រាក់ជំពាក់: ៛{{ "%.2f"|format(total_tabs) }}</p>
+        <p>សរុបប្រាក់ចំណូល: ៛{{ "{:,.0f}".format(total_revenue) }}</p>
+        <p>សរុបប្រាក់ដែលបានទទួល: ៛{{ "{:,.0f}".format(total_paid) }}</p>
+        <p>សរុបប្រាក់ជំពាក់: ៛{{ "{:,.0f}".format(total_tabs) }}</p>
         <p>ចំនួនសិស្សមករៀនជាមធ្យម: {{ average_attendance }} នាក់</p>
     </div>
 </div>

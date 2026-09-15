@@ -32,7 +32,7 @@
                         {{ pc.course.name }}{% if not loop.last %}, {% endif %}
                     {% endfor %}
                 </td>
-                <td>៛{{ "%.2f"|format(p.total_amount) }}</td>
+                <td>៛{{ "{:,.0f}".format(p.total_amount) }}</td>
                 <td>
                     {% if p.is_paid %}
                         <span class="badge bg-success">Paid</span>
@@ -44,7 +44,7 @@
                 <td>
                     <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" 
                             data-payment-id="{{ p.id }}" data-student-name="{{ p.student.full_name }}" 
-                            data-amount="{{ "%.2f"|format(p.total_amount) }}" title="Delete Payment">
+                            data-amount="{{ "{:,.0f}".format(p.total_amount) }}" title="Delete Payment">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>

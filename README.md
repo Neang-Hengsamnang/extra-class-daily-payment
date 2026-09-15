@@ -12,10 +12,12 @@ A web-based application for tracking student attendance and daily payments using
 - **🔄 Record Modification** – Modify existing payments for the same day without duplicating.
 - **📈 Reports & Charts** – Visualise daily/monthly payments with Chart.js.
 - **👥 User Roles** – Admin (full control) and Staff (scan & view today only).
-- **📤 Excel Import/Export** – Bulk import/export student data (ID, name, gender, grade, default course).
+- **📤 Excel Import/Export** – Bulk import/export student data (ID, name, gender, grade, default course) from the tabbed Data Management page.
+- **💾 Database Backup/Restore** – Admins can download a complete SQLite backup and restore a validated backup file.
 - **🖨️ QR Card Printing** – Print 4×5 cm QR code cards on A4 paper (20 per page) with student name and gender.
 - **📤 Google Sheets Export** – Export daily payments to Google Sheets.
-- **🔐 SSL HTTPS** – Self‑signed certificate for secure local access.
+- **🔐 SSL HTTPS** – Uses local self‑signed certificates when available for secure local access.
+- **💰 Whole-number currency display** – Monetary values are displayed with thousands separators and no decimal places (for example, `៛25,500`).
 
 ---
 
@@ -78,18 +80,37 @@ FLASK_ENV=production   # or development for testing
 
 Important: Replace your-strong-secret-key-here with a random string. You can generate one using python -c "import secrets; print(secrets.token_hex(32))".
 
-5. Generate SSL Certificate (for HTTPS)
+5. Generate SSL Certificates (optional)
 
-python generate_ssl.py
+For HTTPS, generate certificates before starting the application. Enter the
+hostname or IP address that users will use from their phones, for example
+`192.168.0.126` or `payments.example.com`.
 
-6. Initialize the Database
+```bash
+python generate_ssl.py --hostname <hostname-or-ip>
+```
+
+The generated certificate is self-signed and intended for local or private
+network use. For a public production domain, use a trusted certificate from
+Let's Encrypt through Nginx or Caddy instead.
+
+6. Start the Application
+
+```bash
+python app.py
+```
+
+If `ssl/cert.pem` and `ssl/key.pem` are unavailable, the application runs in
+HTTP mode. Camera access generally requires HTTPS.
+
+7. Initialize the Database
 
 flask shell
 >>> from app import db
 >>> db.create_all()
 >>> exit()
 
-7. Seed Default Data (Courses & Users)
+8. Seed Default Data (Courses & Users)
 
 python seed.py
 
@@ -103,19 +124,24 @@ Example courses (e.g., Mathematics, Physics, etc.)
 
 ⚠️ Change these default passwords immediately after first login!
 
-8. To run or start the system
-
-python app.py
-
-#####################################################################
 ### ▶️ Running the Application
-Development Mode
-bash
-flask run --host=0.0.0.0 --port=5000 --cert=ssl/cert.pem --key=ssl/key.pem
-Access at https://<raspberry-pi-ip>:5000
 
-Production Mode (Recommended)
-Use Gunicorn with a systemd service for automatic startup.
+#### Local or private-network mode
+
+```bash
+python app.py
+```
+
+With valid SSL certificates, this starts HTTPS on port `443` on Windows and on
+port `5000` when a non-root Linux process cannot bind to port `443`. Without
+certificates, it starts HTTP on port `5000`.
+
+#### Production mode (recommended)
+
+Use Gunicorn behind Nginx or Caddy. The reverse proxy should terminate HTTPS
+on port `443` and forward requests to Gunicorn on localhost. This allows you
+to use a trusted Let's Encrypt certificate and avoids exposing the Flask
+development server directly.
 
 Install Gunicorn (if not already):
 
@@ -133,7 +159,7 @@ User=pi
 WorkingDirectory=/home/pi/extra-class-daily-payment
 Environment="PATH=/home/pi/extra-class-daily-payment/venv/bin"
 Environment="SECRET_KEY=your-secret-key"
-ExecStart=/home/pi/extra-class-daily-payment/venv/bin/gunicorn -w 4 -b 0.0.0.0:5000 --certfile=ssl/cert.pem --keyfile=ssl/key.pem app:app
+ExecStart=/home/pi/extra-class-daily-payment/venv/bin/gunicorn -w 4 -b 127.0.0.1:5000 app:app
 Restart=always
 
 [Install]
@@ -152,8 +178,8 @@ Now the app will start automatically on boot and run in the background.
 🔧 Configuration & Security
 Setting	Location / Method
 Secret Key	Environment variable SECRET_KEY
-Database	instance/site.db (SQLite)
-SSL Certificates	ssl/cert.pem and ssl/key.pem
+Database	`checkin.db` in the project root (SQLite)
+SSL Certificates	Local: `ssl/cert.pem` and `ssl/key.pem`; public production: managed by Nginx/Caddy
 CSRF Protection	Enabled via Flask‑WTF (tokens in forms)
 Default Users	Change via seed.py or admin panel
 📦 Default Users (Change!)
@@ -170,7 +196,9 @@ Student Management: Add, edit, delete students; generate QR codes.
 
 Course Management: Create/edit courses with daily fees.
 
-Data Management: Import/export students via Excel files.
+Data Management: Use separate **Excel សិស្ស** and **Database Backup** tabs.
+The Excel tab supports student import/export and expandable import instructions.
+The Database Backup tab supports complete database download and validated restore.
 
 QR Card Printing: Select students and print QR cards (4×5 cm) on A4.
 
@@ -182,6 +210,9 @@ Staff Role
 Today’s Check‑in: View/scan students and mark attendance/payments.
 
 QR Scanning: Use the camera to scan a student’s QR code and instantly record payment or attendance.
+
+Student Selection: The scan page opens on the student-selection tab by default;
+the QR scanner remains available in the separate scan tab.
 
 Modify Records: If a student already has a payment for today, the system shows the existing record for modification.
 
@@ -197,9 +228,11 @@ A new tab opens with the QR cards laid out on A4 pages (20 per page, 4×5 cm eac
 Use the browser’s Print (or Save as PDF) option.
 
 📤 Excel Import/Export
-Export: Admin → Data Management → Download Export.
+Export: Admin → Data Management → **Excel សិស្ស** → Download student Excel.
 
-Import: Upload an Excel file with columns: id, full_name, gender, grade_level, default_course.
+Import: Admin → Data Management → **Excel សិស្ស** → upload an Excel file with
+columns: id, full_name, gender, grade_level, default_course. Use “បង្ហាញការណែនាំ”
+to show or hide the import instructions.
 
 If id is missing, a new ID (Stu-####) is auto‑generated.
 
@@ -209,12 +242,24 @@ default_course must match an existing course name (case‑sensitive).
 
 QR codes are auto‑generated for new students.
 
+💾 Database Backup/Restore
+Backup: Admin → Data Management → **Database Backup** → Download Database Backup.
+The download contains the complete `checkin.db` database.
+
+Restore: Upload a `.db`, `.sqlite`, or `.sqlite3` file from the same tab and
+confirm the warning. The application checks SQLite integrity and required
+application tables before replacing the current database. Always create a new
+backup before restoring.
+
+Restore is restricted to administrators and replaces all current data.
+
 🔧 Troubleshooting
 Issue	Solution
 QR code not generating	Ensure qrcode and Pillow are installed. Check permissions on static/qrcodes/.
 CSRF token missing	Make sure all forms include {{ csrf_token() }} (already done in templates).
-SSL certificate errors	Accept the self‑signed certificate in your browser, or generate a new one with generate_ssl.py.
-Database errors	Run flask shell and db.create_all() to recreate tables (backup first).
+SSL certificate errors	For local use, accept the self‑signed certificate or regenerate it with `generate_ssl.py`. For public production, verify DNS and renew the trusted certificate through Nginx/Caddy.
+Database errors	Back up the database first. Then run `flask shell` and `db.create_all()` only when tables need to be recreated.
+Restore fails	Use a valid SQLite `.db`, `.sqlite`, or `.sqlite3` backup containing the application tables, and ensure the application can write to the project directory.
 Import fails	Check that the Excel headers match exactly: id, full_name, gender, grade_level, default_course. Ensure course names exist.
 Service not starting (systemd)	Check logs with sudo journalctl -u extra-class.service. Verify paths and environment variables.
 📁 Project Structure

@@ -56,6 +56,12 @@
   .scan-page .card:hover {
     transform: none;
   }
+  .modal-header .btn-close {
+    border: 2px solid #fff;
+    border-radius: 0.375rem;
+    padding: 0.45rem;
+    opacity: 1;
+  }
 </style>
 {% endblock %}
 {% block content %}
@@ -73,12 +79,12 @@
 
         <ul class="nav nav-tabs mb-3" id="inputTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan-panel" type="button">
+                <button class="nav-link" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan-panel" type="button">
                     <i class="bi bi-camera"></i> ស្កេន QR
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="select-tab" data-bs-toggle="tab" data-bs-target="#select-panel" type="button">
+                <button class="nav-link active" id="select-tab" data-bs-toggle="tab" data-bs-target="#select-panel" type="button">
                     <i class="bi bi-person-search"></i> ជ្រើសរើសសិស្ស
                 </button>
             </li>
@@ -87,7 +93,7 @@
         <div class="tab-content" id="inputTabsContent">
 
             <!-- QR Scan Tab -->
-            <div class="tab-pane fade show active" id="scan-panel" role="tabpanel">
+            <div class="tab-pane fade" id="scan-panel" role="tabpanel">
                 <div class="card">
                     <div class="card-body text-center">
                         <div id="reader" style="width:100%; max-width:500px; min-height:300px; margin:auto;"></div>
@@ -100,7 +106,7 @@
             </div>
 
             <!-- Select Student Tab -->
-            <div class="tab-pane fade" id="select-panel" role="tabpanel">
+            <div class="tab-pane fade show active" id="select-panel" role="tabpanel">
                 <div class="card">
                     <div class="card-body">
                         <div class="mb-3">
@@ -127,14 +133,16 @@
         <h5 class="modal-title">ផ្ទៀងផ្ទាត់ការបង់ប្រាក់</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="text-center mb-3">
-            <h4 id="student-name" class="mb-1" style="display: inline;"></h4> •
-            <small class="text-muted">ID: <span id="student-id"></span></small> •
-            <small class="text-muted" id="student-info"></small>
-            <div class="small text-muted mt-1">កាលបរិច្ឆេទ: <span id="confirm-payment-date"></span></div>
+      <div class="d-flex align-items-center justify-content-between gap-2 px-3 py-2 border-bottom">
+        <div>
+          <h4 id="student-name" class="mb-1" style="display: inline;"></h4> •
+          <small>ID: <span id="student-id"></span></small> •
+          <small id="student-info"></small>
+          <div class="small mt-1">កាលបរិច្ឆេទ: <span id="confirm-payment-date"></span></div>
         </div>
-
+        <button type="button" class="btn btn-primary btn-lg" id="confirm-btn">រក្សាទុក</button>
+      </div>
+      <div class="modal-body">
         <div class="card bg-light mb-3">
             <div class="card-body">
                 <h6>ជ្រើសរើសវគ្គសិក្សា:</h6>
@@ -150,7 +158,7 @@
         </div>
 
         <div class="alert alert-info text-center">
-            <h5 class="mb-0">សរុប: ៛<span id="total-display">0.00</span></h5>
+            <h5 class="mb-0">សរុប: ៛<span id="total-display">0</span></h5>
         </div>
 
         <div id="payment-status" class="text-center" style="display:none;">
@@ -159,10 +167,6 @@
             </div>
             <p class="mt-2">កំពុងកត់ត្រាការបង់ប្រាក់...</p>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">បោះបង់</button>
-        <button type="button" class="btn btn-primary btn-lg" id="confirm-btn">រក្សាទុក</button>
       </div>
     </div>
   </div>
@@ -186,15 +190,17 @@
     <div class="modal-content">
       <div class="modal-header bg-warning text-dark">
         <h5 class="modal-title">ព័ត៌មានបង់ប្រាក់ដែលមានរួច</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="alert alert-info mb-3">
-          <strong>សិស្ស:</strong> <span id="today-record-student-name"></span> <br>
+      <div class="d-flex align-items-center justify-content-between gap-2 px-3 py-2 border-bottom">
+        <div class="small">
+          <strong>សិស្សឈ្មោះ:</strong> <span id="today-record-student-name"></span>
           <strong>ថ្ងៃទី:</strong> <span id="today-record-date"></span> <br>
           <strong>វគ្គសិក្សាដែលបង់រួច:</strong> <span id="today-record-courses"></span>
         </div>
-
+        <button type="button" class="btn btn-warning btn-lg" id="today-record-update-btn">រក្សាទុក</button>
+      </div>
+      <div class="modal-body">
         <div class="card bg-light mb-3">
             <div class="card-body">
                 <h6>បង់ប្រាក់វគ្គសិក្សាថ្មី/បន្ថែម:</h6>
@@ -210,7 +216,7 @@
         </div>
 
         <div class="alert alert-info text-center">
-            <h5 class="mb-0">សរុប: ៛<span id="today-record-total-display">0.00</span></h5>
+            <h5 class="mb-0">សរុប: ៛<span id="today-record-total-display">0</span></h5>
         </div>
 
         <div id="today-record-status" class="text-center" style="display:none;">
@@ -219,10 +225,6 @@
             </div>
             <p class="mt-2">កំពុងកែប្រែកំណត់ត្រាការបង់ប្រាក់...</p>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">មិនផ្លាស់ប្តូរ</button>
-        <button type="button" class="btn btn-warning btn-lg" id="today-record-update-btn">កែសម្រួល និងរក្សាទុក</button>
       </div>
     </div>
   </div>

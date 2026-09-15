@@ -1,4 +1,6 @@
 import os
+import sqlite3
+import tempfile
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file, current_app
 from flask_login import login_required, current_user
 from openpyxl import Workbook, load_workbook
@@ -13,6 +15,12 @@ from io import BytesIO
 from functools import wraps
 
 admin_bp = Blueprint('admin', __name__)
+
+def _sqlite_database_path():
+    """Return the configured SQLite database path."""
+    if db.engine.dialect.name != 'sqlite' or not db.engine.url.database:
+        raise RuntimeError('Database backup and restore require a file-based SQLite database.')
+    return os.path.abspath(db.engine.url.database)
 
 def admin_required(f):
     @wraps(f)
@@ -429,6 +437,102 @@ def export_students():
         download_name=f"students_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+@admin_bp.route('/backup-database')
+@admin_required
+def backup_database():
+    """Download a consistent copy of the complete SQLite database."""
+    temporary_path = None
+    try:
+        database_path = _sqlite_database_path()
+        if not os.path.isfile(database_path):
+            flash('មិនអាចរកឃើញ database សម្រាប់ Backup បានទេ។', 'error')
+            return redirect(url_for('admin.data_management'))
+
+        with tempfile.NamedTemporaryFile(
+            prefix='database_backup_', suffix='.db', delete=False
+        ) as temporary_file:
+            temporary_path = temporary_file.name
+
+        source = sqlite3.connect(database_path)
+        target = sqlite3.connect(temporary_path)
+        try:
+            source.backup(target)
+        finally:
+            target.close()
+            source.close()
+
+        with open(temporary_path, 'rb') as backup_file:
+            backup_data = BytesIO(backup_file.read())
+        backup_data.seek(0)
+        return send_file(
+            backup_data,
+            as_attachment=True,
+            download_name=f"checkin_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db",
+            mimetype='application/x-sqlite3'
+        )
+    except (OSError, sqlite3.Error, RuntimeError) as error:
+        current_app.logger.exception('Database backup failed')
+        flash(f'ការរក្សាទុក Backup មិនបានជោគជ័យ: {error}', 'error')
+        return redirect(url_for('admin.data_management'))
+    finally:
+        if temporary_path and os.path.exists(temporary_path):
+            os.remove(temporary_path)
+
+@admin_bp.route('/restore-database', methods=['POST'])
+@admin_required
+def restore_database():
+    """Validate and restore an uploaded SQLite database backup."""
+    uploaded_file = request.files.get('backup_file')
+    if not uploaded_file or not uploaded_file.filename:
+        flash('សូមជ្រើសរើស Database Backup file មួយ។', 'error')
+        return redirect(url_for('admin.data_management'))
+
+    filename = uploaded_file.filename.lower()
+    if not filename.endswith(('.db', '.sqlite', '.sqlite3')):
+        flash('សូម Upload file ប្រភេទ .db, .sqlite ឬ .sqlite3។', 'error')
+        return redirect(url_for('admin.data_management'))
+
+    temporary_path = None
+    try:
+        database_path = _sqlite_database_path()
+        database_directory = os.path.dirname(database_path)
+        file_descriptor, temporary_path = tempfile.mkstemp(
+            prefix='database_restore_', suffix='.db', dir=database_directory
+        )
+        os.close(file_descriptor)
+        uploaded_file.save(temporary_path)
+
+        required_tables = {'user', 'course', 'student', 'payment', 'payment_course'}
+        with sqlite3.connect(temporary_path) as validation_connection:
+            integrity_result = validation_connection.execute(
+                'PRAGMA integrity_check'
+            ).fetchone()
+            if not integrity_result or integrity_result[0] != 'ok':
+                raise ValueError('Database file failed integrity validation.')
+
+            table_rows = validation_connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+            available_tables = {row[0] for row in table_rows}
+            missing_tables = required_tables - available_tables
+            if missing_tables:
+                missing = ', '.join(sorted(missing_tables))
+                raise ValueError(f'Database backup is missing required tables: {missing}.')
+
+        db.session.remove()
+        db.engine.dispose()
+        os.replace(temporary_path, database_path)
+        temporary_path = None
+        flash('Database Backup ត្រូវបាន Restore ដោយជោគជ័យ។', 'success')
+    except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
+        current_app.logger.exception('Database restore failed')
+        flash(f'ការស្ដារ Database មិនបានជោគជ័យ: {error}', 'error')
+    finally:
+        if temporary_path and os.path.exists(temporary_path):
+            os.remove(temporary_path)
+
+    return redirect(url_for('admin.data_management'))
 
 
 @admin_bp.route('/import-students', methods=['POST'])

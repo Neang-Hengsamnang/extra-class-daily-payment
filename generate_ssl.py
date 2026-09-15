@@ -8,6 +8,7 @@ import socket
 import subprocess
 import sys
 import platform
+import argparse
 from pathlib import Path
 
 def get_platform():
@@ -209,7 +210,7 @@ def get_local_ip():
             pass
         
         # Default fallback
-        return "192.168.1.100"
+        return "localhost"
 
 def check_openssl_compatibility(openssl_path):
     """Check if OpenSSL supports required features"""
@@ -236,7 +237,7 @@ def check_openssl_compatibility(openssl_path):
     except:
         return False
 
-def generate_self_signed_cert():
+def generate_self_signed_cert(hostname=None, interactive=True):
     """Generate self-signed SSL certificate - cross-platform"""
     
     # Find OpenSSL first
@@ -249,9 +250,10 @@ def generate_self_signed_cert():
     # Check OpenSSL compatibility
     if not check_openssl_compatibility(openssl_path):
         print("\n⚠ Warning: OpenSSL may not be fully functional.")
-        proceed = input("Continue anyway? (y/n): ").lower()
-        if proceed != 'y':
-            return
+        if interactive:
+            proceed = input("Continue anyway? (y/n): ").lower()
+            if proceed != 'y':
+                return False
     
     # Get the directory where this script is located
     base_dir = Path(__file__).parent
@@ -262,11 +264,11 @@ def generate_self_signed_cert():
     key_file = ssl_dir / 'key.pem'
     
     # Check if certificates already exist
-    if cert_file.exists() and key_file.exists():
+    if cert_file.exists() and key_file.exists() and interactive:
         response = input("SSL certificates already exist. Overwrite? (y/n): ").lower()
         if response != 'y':
             print("Keeping existing certificates.")
-            return
+            return True
     
     # Get IP and hostname
     local_ip = get_local_ip()
@@ -277,7 +279,12 @@ def generate_self_signed_cert():
     print(f"\nDetected platform: {get_platform().title()}")
     print(f"Detected local IP: {local_ip}")
     
-    hostname = input(f"Enter hostname or IP (press Enter for {local_ip}): ").strip()
+    if hostname is None:
+        hostname = (
+            input(f"Enter hostname or IP (press Enter for {local_ip}): ").strip()
+            if interactive
+            else local_ip
+        )
     if not hostname:
         hostname = local_ip
     
@@ -314,9 +321,9 @@ prompt = no
 default_bits = 2048
 
 [req_distinguished_name]
-C = US
-ST = State
-L = City
+C = KH
+ST = Kampot
+L = Banteay Meas
 O = School
 OU = IT
 CN = {hostname}
@@ -421,8 +428,22 @@ subjectAltName = @alt_names
             except OSError:
                 pass  # Ignore cleanup errors
 
+    return cert_file.exists() and key_file.exists()
+
 def main():
     """Main entry point with platform information"""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--non-interactive',
+        action='store_true',
+        help='Use the detected local IP without prompting for input',
+    )
+    parser.add_argument(
+        '--hostname',
+        help='Hostname or IP to include in the certificate',
+    )
+    args = parser.parse_args()
+
     platform_name = get_platform()
     print(f"🖥️  Running on: {platform_name.title()}")
     
@@ -434,7 +455,12 @@ def main():
         except:
             pass
     
-    generate_self_signed_cert()
+    generated = generate_self_signed_cert(
+        hostname=args.hostname,
+        interactive=not args.non_interactive,
+    )
+    if not generated:
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()
